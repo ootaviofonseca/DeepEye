@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DeepEye — Arquitetura Interativa</title>
+<style>
+:root {
+  --bg: #0b0d14;
+  --bg2: #11141f;
+  --surface: #181c2a;
+  --surface2: #1f2438;
+  --border: #2a2f47;
+  --border2: #353b5a;
+  --text: #e2e8f0;
+  --muted: #8892a4;
+  --dim: #4a5270;
+  --accent: #6c63ff;
+  --accent2: #00d4aa;
+  --accent3: #ff6b6b;
+  --accent4: #ffd93d;
+  --accent5: #4fc3f7;
+  --r: 10px;
+  --r-sm: 6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.65;display:flex;min-height:100vh}
+
+/* ── SIDEBAR ── */
+#sidebar{width:220px;min-width:220px;height:100vh;position:sticky;top:0;overflow-y:auto;background:var(--surface);border-right:1px solid var(--border);padding:0 0 40px;scrollbar-width:thin}
+.sidebar-logo{padding:20px 16px 16px;font-size:1.1rem;font-weight:700;color:var(--accent);border-bottom:1px solid var(--border);letter-spacing:.03em;display:flex;align-items:center;gap:8px}
+.sidebar-logo span{color:var(--text);font-weight:300}
+.sidebar-section{padding:14px 16px 4px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--dim)}
+.sidebar-link{display:block;padding:6px 16px;color:var(--muted);text-decoration:none;font-size:.82rem;border-left:3px solid transparent;transition:all .15s}
+.sidebar-link:hover,.sidebar-link.active{color:var(--text);border-left-color:var(--accent);background:rgba(108,99,255,.1)}
+
+/* ── MAIN ── */
+main{flex:1;min-width:0;padding:40px 48px 100px;max-width:1040px}
+section{margin-bottom:80px;scroll-margin-top:24px}
+h1{font-size:2.4rem;font-weight:800;margin-bottom:6px;line-height:1.2}
+h2{font-size:1.55rem;font-weight:700;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+h3{font-size:1rem;font-weight:600;margin:24px 0 10px;color:var(--accent5)}
+p{color:var(--muted);margin-bottom:12px}
+strong{color:var(--text)}
+code{font-family:'Cascadia Code','Fira Code',monospace;background:rgba(108,99,255,.15);color:#a5b4fc;padding:1px 7px;border-radius:4px;font-size:.82em}
+pre{background:#0d0f18;border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;font-size:.8rem;overflow-x:auto;font-family:'Cascadia Code','Fira Code',monospace;color:#c9d1d9;margin:14px 0;line-height:1.65;position:relative}
+pre .kw{color:#ff7b72}
+pre .cls{color:#d2a8ff}
+pre .fn{color:#79c0ff}
+pre .str{color:#a5d6ff}
+pre .cm{color:#6e7681}
+hr{border:none;border-top:1px solid var(--border);margin:60px 0}
+
+/* ── BADGE ── */
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:20px;padding:4px 12px;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.badge-purple{background:rgba(108,99,255,.15);color:var(--accent);border:1px solid var(--accent)}
+.badge-teal{background:rgba(0,212,170,.12);color:var(--accent2);border:1px solid var(--accent2)}
+.badge-red{background:rgba(255,107,107,.12);color:var(--accent3);border:1px solid var(--accent3)}
+.badge-yellow{background:rgba(255,217,61,.12);color:var(--accent4);border:1px solid var(--accent4)}
+
+/* ── CALLOUT ── */
+.callout{background:rgba(108,99,255,.08);border-left:3px solid var(--accent);border-radius:0 var(--r) var(--r) 0;padding:12px 16px;margin:16px 0;font-size:.85rem;color:var(--muted)}
+.callout strong{color:#a5b4fc}
+.callout.info{background:rgba(79,195,247,.08);border-left-color:var(--accent5)}
+.callout.info strong{color:var(--accent5)}
+
+/* ── TABLES ── */
+.tbl{width:100%;border-collapse:collapse;font-size:.82rem;margin:14px 0}
+.tbl th{background:var(--surface);color:var(--accent);font-weight:600;text-align:left;padding:10px 14px;border-bottom:2px solid var(--border)}
+.tbl td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--muted);vertical-align:top}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.tbl code{font-size:.78em}
+
+/* ── TAG ── */
+.tag{display:inline-block;border-radius:4px;padding:2px 8px;font-size:.7rem;font-weight:700;margin-right:4px}
+.tag-data{background:#0a2540;color:#60a5fa}
+.tag-code{background:#0a2515;color:#34d399}
+.tag-out{background:#2a0a15;color:#f87171}
+.tag-llm{background:#2a1a00;color:#fbbf24}
+.tag-tool{background:#1a1a3a;color:#a5b4fc}
+.tag-agent{background:#2a1a2a;color:#e879f9}
+
+/* ── CARD GRID ── */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;transition:border-color .2s,transform .15s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.card-title{font-weight:700;font-size:.9rem;margin-bottom:4px}
+.card-sub{font-size:.75rem;color:var(--muted)}
+
+/* ═══════════════════════════════════════════
+   SECTION 1 — HERO
+═══════════════════════════════════════════ */
+.hero-stat-row{display:flex;gap:14px;margin:24px 0;flex-wrap:wrap}
+.hero-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 20px;flex:1;min-width:130px;text-align:center}
+.hero-stat .val{font-size:1.8rem;font-weight:800;color:var(--accent)}
+.hero-stat .lbl{font-size:.73rem;color:var(--muted);margin-top:2px}
+
+/* ═══════════════════════════════════════════
+   SECTION 2 — CHALLENGES
+═══════════════════════════════════════════ */
+.challenge-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0}
+.challenge{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;position:relative;overflow:hidden;transition:border-color .2s}
+.challenge:hover{border-color:var(--accent)}
+.challenge::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.challenge:nth-child(1)::before{background:var(--accent3)}
+.challenge:nth-child(2)::before{background:var(--accent4)}
+.challenge:nth-child(3)::before{background:var(--accent2)}
+.challenge .c-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px}
+.challenge .c-title{font-size:.92rem;font-weight:700;margin-bottom:8px}
+.challenge .c-desc{font-size:.8rem;color:var(--muted)}
+.challenge .c-fix{font-size:.78rem;margin-top:10px;padding:8px 10px;border-radius:6px;background:rgba(108,99,255,.1)}
+.challenge:nth-child(1) .c-fix{background:rgba(255,107,107,.08);color:#f87171}
+.challenge:nth-child(2) .c-fix{background:rgba(255,217,61,.08);color:#fbbf24}
+.challenge:nth-child(3) .c-fix{background:rgba(0,212,170,.08);color:var(--accent2)}
+
+/* ═══════════════════════════════════════════
+   SECTION 3 — LAYER DIAGRAM (interactive)
+═══════════════════════════════════════════ */
+.layer-wrap{position:relative;margin:24px 0}
+.layer-row{display:flex;align-items:center;gap:10px;border-radius:var(--r);padding:14px 16px;border:1px solid rgba(255,255,255,.06);cursor:pointer;transition:border-color .2s;margin-bottom:4px;position:relative}
+.layer-row:hover{border-color:var(--accent)}
+.layer-icon{font-size:1.2rem;width:32px;text-align:center;flex-shrink:0}
+.layer-name{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);min-width:80px;flex-shrink:0}
+.layer-boxes{display:flex;gap:8px;flex-wrap:wrap;flex:1}
+.layer-box{background:rgba(255,255,255,.08);border-radius:6px;padding:4px 12px;font-size:.8rem;font-weight:600;transition:background .15s}
+.layer-row:hover .layer-box{background:rgba(108,99,255,.2)}
+.layer-connector{text-align:center;color:var(--dim);font-size:.85rem;padding:2px 0;position:relative}
+.layer-connector::before{content:'';position:absolute;left:50%;top:50%;width:1px;height:100%;background:var(--border);transform:translateX(-50%)}
+.flow-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);position:relative;z-index:1;animation:pulse-dot 2s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}
+
+/* ═══════════════════════════════════════════
+   SECTION 4 — NODE PROTOCOL
+═══════════════════════════════════════════ */
+.protocol-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin:16px 0}
+.protocol-title{font-size:1rem;font-weight:700;margin-bottom:4px}
+.protocol-formula{font-family:'Cascadia Code','Fira Code',monospace;font-size:1.15rem;color:#d2a8ff;margin:12px 0 20px;padding:10px 16px;background:#0d0f18;border-radius:var(--r-sm);border:1px solid var(--border)}
+.protocol-slots{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:0}
+.p-slot{border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 12px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg2)}
+.p-slot:hover,.p-slot.active{border-color:var(--accent);background:rgba(108,99,255,.12)}
+.p-slot .sym{font-size:1.5rem;font-weight:800;font-family:serif;color:var(--accent4);margin-bottom:4px}
+.p-slot .sym-name{font-size:.72rem;font-weight:700;color:var(--text);margin-bottom:4px}
+.p-slot .sym-code{font-size:.68rem;font-family:monospace;color:#a5b4fc;margin-bottom:4px}
+.p-slot .sym-desc{font-size:.7rem;color:var(--muted)}
+.p-detail{margin-top:14px;padding:14px;background:var(--bg2);border-radius:var(--r-sm);border:1px solid var(--border);font-size:.82rem;color:var(--muted);min-height:60px;transition:all .2s}
+
+/* ═══════════════════════════════════════════
+   SECTION 5 — NODE CATALOG
+═══════════════════════════════════════════ */
+.filter-bar{display:flex;gap:8px;margin:14px 0;flex-wrap:wrap}
+.filter-btn{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:20px;padding:5px 14px;font-size:.78rem;cursor:pointer;transition:all .15s}
+.filter-btn:hover,.filter-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.node-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin:10px 0}
+.node-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer;transition:all .2s}
+.node-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.node-card .nc-type{font-family:monospace;font-size:.78rem;color:#a5b4fc;margin-bottom:6px;background:rgba(108,99,255,.12);display:inline-block;padding:2px 8px;border-radius:4px}
+.node-card .nc-title{font-weight:700;font-size:.88rem;margin-bottom:4px}
+.node-card .nc-desc{font-size:.78rem;color:var(--muted);margin-bottom:8px}
+.nc-ports{display:flex;gap:6px;flex-wrap:wrap}
+.nc-port{font-size:.68rem;border-radius:4px;padding:2px 8px;font-weight:600}
+.nc-in{background:rgba(79,195,247,.12);color:var(--accent5)}
+.nc-out{background:rgba(0,212,170,.12);color:var(--accent2)}
+.node-card[style*="display:none"]{display:none!important}
+
+/* ═══════════════════════════════════════════
+   SECTION 6 — AGENT TOPOLOGY
+═══════════════════════════════════════════ */
+.agent-diagram{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;margin:16px 0;overflow-x:auto}
+.a-flow{display:flex;flex-direction:column;align-items:center;gap:0;min-width:520px}
+.a-node{border-radius:var(--r);padding:14px 24px;text-align:center;cursor:pointer;transition:all .2s;position:relative;min-width:220px}
+.a-node:hover{transform:scale(1.03)}
+.a-node .a-type{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.7;margin-bottom:2px}
+.a-node .a-name{font-size:.95rem;font-weight:700}
+.a-node .a-file{font-family:monospace;font-size:.68rem;opacity:.6;margin-top:3px}
+.a-arrow{display:flex;flex-direction:column;align-items:center;padding:4px 0;color:var(--dim)}
+.a-arrow .a-label{font-size:.7rem;color:var(--muted);background:var(--bg2);padding:2px 8px;border-radius:10px;white-space:nowrap}
+.a-arrow svg{margin:2px 0}
+.a-branches{display:flex;gap:20px;align-items:flex-start;width:100%;justify-content:center}
+.a-branch{display:flex;flex-direction:column;align-items:center;gap:0}
+/* colors */
+.a-supervisor{background:linear-gradient(135deg,#2d1b69,#1e1060);border:1px solid #6c63ff}
+.a-workflow{background:linear-gradient(135deg,#1a3a5c,#0f2240);border:1px solid #4fc3f7}
+.a-engine{background:linear-gradient(135deg,#0f3a20,#082815);border:1px solid #00d4aa}
+.a-task{background:linear-gradient(135deg,#3a1a20,#250f12);border:1px solid #f87171}
+
+/* tooltip */
+.a-tooltip{position:fixed;pointer-events:none;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r-sm);padding:10px 14px;font-size:.78rem;color:var(--muted);max-width:260px;z-index:1000;opacity:0;transition:opacity .15s}
+.a-tooltip.show{opacity:1}
+.a-tooltip strong{color:var(--text);display:block;margin-bottom:4px}
+
+/* ═══════════════════════════════════════════
+   SECTION 7 — WORKFLOW ENGINE (SIMULATOR)
+═══════════════════════════════════════════ */
+.engine-sim{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin:16px 0}
+.engine-phases{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.e-phase{border-radius:var(--r-sm);padding:14px;text-align:center;border:1px solid var(--border);background:var(--bg2);transition:all .3s;position:relative;overflow:hidden}
+.e-phase.active{border-color:var(--accent4);background:rgba(255,217,61,.08)}
+.e-phase.done{border-color:var(--accent2);background:rgba(0,212,170,.08)}
+.e-phase.failed{border-color:var(--accent3);background:rgba(255,107,107,.08)}
+.e-phase::after{content:'';position:absolute;bottom:0;left:0;height:2px;background:var(--accent);width:0;transition:width .5s}
+.e-phase.active::after{width:60%;animation:loading-bar 1.2s ease-in-out infinite}
+.e-phase.done::after{width:100%;background:var(--accent2)}
+.e-phase.failed::after{width:100%;background:var(--accent3)}
+@keyframes loading-bar{0%{width:0}50%{width:80%}100%{width:0}}
+.e-phase .ph-num{font-size:1.4rem;margin-bottom:4px;font-weight:800}
+.e-phase .ph-name{font-size:.8rem;font-weight:700;margin-bottom:3px}
+.e-phase .ph-status{font-size:.7rem;color:var(--muted)}
+.e-phase.done .ph-status{color:var(--accent2)}
+.e-phase.active .ph-status{color:var(--accent4)}
+.e-phase.failed .ph-status{color:var(--accent3)}
+/* DAG */
+.dag-area{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:20px;min-height:180px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;overflow-x:auto}
+.dag-svg-wrap{min-width:540px}
+.dag-node{cursor:pointer}
+.dag-node rect{rx:8;ry:8;stroke-width:1.5;transition:all .3s}
+.dag-node text{font-size:11px;font-family:'Segoe UI',sans-serif;fill:#e2e8f0;font-weight:600;pointer-events:none}
+.dag-node .sub{font-size:9px;fill:#8892a4;font-weight:400}
+.dag-node.idle rect{fill:#1f2438;stroke:#353b5a}
+.dag-node.running rect{fill:#2a1f00;stroke:#ffd93d;filter:drop-shadow(0 0 6px rgba(255,217,61,.4))}
+.dag-node.done rect{fill:#0f2a1a;stroke:#00d4aa}
+.dag-node.failed rect{fill:#2a0f0f;stroke:#f87171}
+.dag-node.parallel rect{stroke-dasharray:4 2}
+.dag-edge{stroke:#353b5a;stroke-width:1.5;fill:none;marker-end:url(#arrow)}
+.dag-edge.active{stroke:var(--accent4);stroke-width:2;animation:dash-flow 1.2s linear infinite}
+@keyframes dash-flow{0%{stroke-dashoffset:20}100%{stroke-dashoffset:0}}
+.sim-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sim-btn{border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:var(--r-sm);padding:8px 18px;font-size:.82rem;cursor:pointer;transition:all .15s}
+.sim-btn:hover{background:var(--accent);border-color:var(--accent)}
+.sim-btn.primary{background:var(--accent);border-color:var(--accent)}
+.sim-btn.primary:hover{background:#5a52e0}
+.sim-btn:disabled{opacity:.4;cursor:default}
+.sim-log{font-family:monospace;font-size:.75rem;color:var(--muted);background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;max-height:110px;overflow-y:auto;margin-top:12px;white-space:pre-wrap}
+.sim-log .ok{color:var(--accent2)}
+.sim-log .warn{color:var(--accent4)}
+.sim-log .err{color:var(--accent3)}
+.sim-log .info{color:var(--accent5)}
+
+/* ═══════════════════════════════════════════
+   SECTION 8 — MEMORY PLANNER
+═══════════════════════════════════════════ */
+.memory-diagram{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+.mem-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.mem-box .mem-title{font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.mem-box ul{list-style:none}
+.mem-box ul li{font-size:.8rem;color:var(--muted);padding:4px 0;padding-left:14px;position:relative}
+.mem-box ul li::before{content:'→';position:absolute;left:0;color:var(--accent);font-size:.72rem}
+.planning-cycle{display:flex;gap:8px;align-items:center;margin:16px 0;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.pc-step{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;font-size:.78rem;text-align:center;flex:1;min-width:100px}
+.pc-step .pc-icon{font-size:1.2rem;margin-bottom:4px}
+.pc-step .pc-label{font-weight:700;color:var(--text);font-size:.8rem;margin-bottom:2px}
+.pc-step .pc-sub{color:var(--muted);font-size:.72rem}
+.pc-arrow{color:var(--dim);font-size:1.2rem;flex-shrink:0}
+
+/* ═══════════════════════════════════════════
+   SECTION 9 — SANDBOX
+═══════════════════════════════════════════ */
+.sandbox-flow{display:flex;flex-direction:column;gap:0;margin:16px 0}
+.sf-step{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--border)}
+.sf-step:last-child{border-bottom:none}
+.sf-num{width:28px;height:28px;background:var(--surface2);border:1px solid var(--border2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;flex-shrink:0;color:var(--accent)}
+.sf-content .sf-title{font-weight:700;font-size:.88rem;margin-bottom:2px}
+.sf-content .sf-desc{font-size:.8rem;color:var(--muted)}
+.sf-content code{font-size:.75em}
+
+/* ═══════════════════════════════════════════
+   SECTION 10 — EVENTS
+═══════════════════════════════════════════ */
+.event-flow{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin:16px 0;overflow-x:auto}
+.ef-row{display:flex;gap:0;align-items:center;min-width:640px}
+.ef-node{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;text-align:center;min-width:110px;flex-shrink:0}
+.ef-node .ef-icon{font-size:1.2rem}
+.ef-node .ef-label{font-size:.72rem;font-weight:700;margin-top:4px;color:var(--text)}
+.ef-node .ef-sub{font-size:.65rem;color:var(--muted);margin-top:1px}
+.ef-arrow{flex:1;display:flex;flex-direction:column;align-items:center;padding:0 4px}
+.ef-arrow svg{width:100%;min-width:40px}
+.ef-arrow .ef-msg{font-size:.65rem;color:var(--muted);margin-top:3px;white-space:nowrap}
+.event-phases{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}
+.ev-phase{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-family:monospace;font-size:.72rem;color:#a5b4fc;transition:all .15s;cursor:default}
+.ev-phase:hover{border-color:var(--accent);color:var(--text)}
+
+/* ═══════════════════════════════════════════
+   SECTION 11 — INFRA
+═══════════════════════════════════════════ */
+.infra-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
+.svc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;transition:border-color .2s}
+.svc-card:hover{border-color:var(--accent)}
+.svc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.svc-name{font-weight:700;font-size:.88rem}
+.svc-port{font-family:monospace;font-size:.7rem;color:var(--accent4);background:rgba(255,217,61,.08);border-radius:4px;padding:2px 7px}
+.svc-desc{font-size:.78rem;color:var(--muted)}
+.svc-tech{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}
+.svc-tech span{font-size:.65rem;background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:1px 6px;color:var(--dim)}
+
+/* ═══════════════════════════════════════════
+   SECTION 12 — E2E FLOW (animated)
+═══════════════════════════════════════════ */
+.e2e-wrap{margin:16px 0}
+.e2e-step{display:flex;gap:14px;margin-bottom:8px;cursor:pointer}
+.e2e-step .e2e-num{min-width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0;background:var(--surface);border:1px solid var(--border);transition:all .2s;color:var(--muted)}
+.e2e-step.active .e2e-num{background:var(--accent);border-color:var(--accent);color:#fff}
+.e2e-step.done .e2e-num{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.e2e-content{padding-top:6px;flex:1}
+.e2e-content .e2e-title{font-weight:700;font-size:.9rem;transition:color .2s}
+.e2e-step.active .e2e-title{color:var(--accent4)}
+.e2e-step.done .e2e-title{color:var(--accent2)}
+.e2e-content .e2e-desc{font-size:.8rem;color:var(--muted);margin-top:2px}
+.e2e-content code{font-size:.75em}
+.e2e-connector{width:36px;display:flex;justify-content:center;padding:0;color:var(--border)}
+
+/* ─── scroll spy ─── */
+@media(max-width:780px){
+  #sidebar{display:none}
+  main{padding:24px 18px 80px;max-width:100%}
+  .challenge-cards{grid-template-columns:1fr}
+  .protocol-slots{grid-template-columns:repeat(3,1fr)}
+  .engine-phases{grid-template-columns:1fr 1fr}
+  .infra-grid{grid-template-columns:1fr 1fr}
+  .memory-diagram{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<nav id="sidebar">
+  <div class="sidebar-logo">🔍 Deep<span>Eye</span></div>
+  <div class="sidebar-section">Visão Geral</div>
+  <a class="sidebar-link" href="#hero">Introdução</a>
+  <a class="sidebar-link" href="#challenges">Desafios</a>
+
+  <div class="sidebar-section">Arquitetura</div>
+  <a class="sidebar-link" href="#layers">Camadas</a>
+  <a class="sidebar-link" href="#node-protocol">Protocolo de Nó</a>
+  <a class="sidebar-link" href="#node-catalog">Catálogo de Nós</a>
+
+  <div class="sidebar-section">Agentes</div>
+  <a class="sidebar-link" href="#agent-topology">Topologia</a>
+  <a class="sidebar-link" href="#planner">Memory-Planner</a>
+
+  <div class="sidebar-section">Engine</div>
+  <a class="sidebar-link" href="#workflow-engine">Workflow Engine</a>
+  <a class="sidebar-link" href="#sandbox">Sandbox</a>
+  <a class="sidebar-link" href="#events">Eventos SSE</a>
+
+  <div class="sidebar-section">Infra & Fluxo</div>
+  <a class="sidebar-link" href="#infra">Infraestrutura</a>
+  <a class="sidebar-link" href="#e2e">Fluxo Completo</a>
+  <a class="sidebar-link" href="#extend">Extensão</a>
+</nav>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main>
+
+<!-- ───────────── HERO ───────────── -->
+<section id="hero">
+  <div style="margin-bottom:12px">
+    <span class="badge badge-purple">SIGMOD Demo 2026</span>
+    &nbsp;
+    <span class="badge badge-teal">arXiv 2603.28889</span>
+  </div>
+  <h1>DeepEye</h1>
+  <p style="font-size:1.05rem;color:var(--text);margin-bottom:6px">
+    Um <strong>agente de dados self-driving</strong> — você descreve o objetivo em linguagem natural,
+    o sistema planeja e executa um workflow, e entrega os artefatos prontos.
+  </p>
+  <p>
+    Em vez de uma resposta direta de chatbot, o DeepEye produz um
+    <strong>DAG auditável</strong> que é compilado, validado, otimizado e executado por um
+    engine inspirado em bancos de dados.
+  </p>
+
+  <div class="hero-stat-row">
+    <div class="hero-stat"><div class="val">8</div><div class="lbl">Tipos de nó</div></div>
+    <div class="hero-stat"><div class="val">4</div><div class="lbl">Fases do engine</div></div>
+    <div class="hero-stat"><div class="val">3</div><div class="lbl">Tipos de artefato</div></div>
+    <div class="hero-stat"><div class="val">7</div><div class="lbl">Serviços Docker</div></div>
+    <div class="hero-stat"><div class="val">2</div><div class="lbl">Tipos de nó (Tool/Agent)</div></div>
+  </div>
+
+  <div class="callout info">
+    <strong>Workflow-centric</strong> — cada requisição complexa vira um DAG transparente.
+    Você pode inspecionar cada nó, ver o SQL gerado, editar e re-executar antes de finalizar.
+  </div>
+</section>
+
+<!-- ───────────── CHALLENGES ───────────── -->
+<section id="challenges">
+  <h2>Desafios que o DeepEye resolve</h2>
+  <p>Três limitações fundamentais dos sistemas "ChatBI" atuais:</p>
+
+  <div class="challenge-cards">
+    <div class="challenge">
+      <div class="c-label">C1</div>
+      <div class="c-title">Heterogeneity Gap</div>
+      <div class="c-desc">
+        Decisões reais exigem cruzar banco de dados SQL, arquivos CSV e PDFs juntos.
+        Sistemas atuais são silos: Text-to-SQL só faz bancos; RAG só faz documentos.
+      </div>
+      <div class="c-fix">✦ Resposta: <strong>Unified Multimodal Orchestration</strong> — protocolo de nó unificado que conecta todas as fontes</div>
+    </div>
+    <div class="challenge">
+      <div class="c-label">C2</div>
+      <div class="c-title">Context Explosion</div>
+      <div class="c-desc">
+        Em single-agent, toda a história, todas as ferramentas e todas as observações
+        intermediárias ficam na mesma janela de contexto — causando alucinação.
+      </div>
+      <div class="c-fix">✦ Resposta: <strong>Hierarchical Reasoning</strong> — cada AgentNode tem contexto privado isolado do planejador global</div>
+    </div>
+    <div class="challenge">
+      <div class="c-label">C3</div>
+      <div class="c-title">Unreliability & Inefficiency</div>
+      <div class="c-desc">
+        Execução sequencial, "black-box", difícil de debugar ou otimizar.
+        Oportunidades de paralelismo ignoradas.
+      </div>
+      <div class="c-fix">✦ Resposta: <strong>Workflow Engine</strong> — valida antes de rodar, paraleliza via topological sort</div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── LAYERS ───────────── -->
+<section id="layers">
+  <h2>Arquitetura em 4 Camadas</h2>
+  <p>O sistema é organizado em camadas verticais; clique em qualquer camada para detalhes.</p>
+
+  <div class="layer-wrap" id="layerDiagram">
+    <div class="layer-row" style="background:#0e2a3a" onclick="selectLayer('datasources')" data-layer="datasources">
+      <div class="layer-icon">🗄️</div>
+      <div class="layer-name">Dados</div>
+      <div class="layer-boxes">
+        <div class="layer-box">PostgreSQL / MySQL</div>
+        <div class="layer-box">CSV / Excel / JSON</div>
+        <div class="layer-box">PDF / TXT / Markdown</div>
+        <div class="layer-box">Vector Store</div>
+      </div>
+    </div>
+    <div class="layer-connector"><div class="flow-dot"></div> &nbsp; Fontes injetadas no contexto do Planner</div>
+
+    <div class="layer-row" style="background:#1e0f40" onclick="selectLayer('planner')" data-layer="planner">
+      <div class="layer-icon">🧠</div>
+      <div class="layer-name">Planner</div>
+      <div class="layer-boxes">
+        <div class="layer-box">SupervisorAgent</div>
+        <div class="layer-box">WorkflowAgent</div>
+        <div class="layer-box">Memória curta + longa</div>
+      </div>
+    </div>
+    <div class="layer-connector"><div class="flow-dot"></div> &nbsp; Plano JSON (workflow DAG)</div>
+
+    <div class="layer-row" style="background:#0f3020" onclick="selectLayer('engine')" data-layer="engine">
+      <div class="layer-icon">⚙️</div>
+      <div class="layer-name">Engine</div>
+      <div class="layer-boxes">
+        <div class="layer-box">1. Compiler</div>
+        <div class="layer-box">2. Validator</div>
+        <div class="layer-box">3. Optimizer</div>
+        <div class="layer-box">4. Executor</div>
+      </div>
+    </div>
+    <div class="layer-connector"><div class="flow-dot"></div> &nbsp; Artefatos produzidos</div>
+
+    <div class="layer-row" style="background:#2a1a0a" onclick="selectLayer('outputs')" data-layer="outputs">
+      <div class="layer-icon">✨</div>
+      <div class="layer-name">Outputs</div>
+      <div class="layer-boxes">
+        <div class="layer-box">🎬 Data Video</div>
+        <div class="layer-box">📊 Dashboard</div>
+        <div class="layer-box">📝 Relatório</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="layer-detail" class="callout" style="display:none"></div>
+</section>
+
+<!-- ───────────── NODE PROTOCOL ───────────── -->
+<section id="node-protocol">
+  <h2>Protocolo Unificado de Nó</h2>
+  <p>
+    Todo componente do DeepEye — desde leitura de dados até geração de vídeo — segue o mesmo
+    protocolo formal. Isso permite que o Planner raciocine sobre qualquer capacidade de forma
+    homogênea.
+  </p>
+
+  <div class="protocol-wrap">
+    <div class="protocol-title">Definição formal (do paper SIGMOD '26):</div>
+    <div class="protocol-formula">N = ⟨𝒟, 𝒮, 𝒪, 𝒞, Φ⟩</div>
+
+    <div class="protocol-slots" id="protoSlots">
+      <div class="p-slot" onclick="selectProto(0)">
+        <div class="sym">𝒟</div>
+        <div class="sym-name">Description</div>
+        <div class="sym-code">NodeSpec.description</div>
+        <div class="sym-desc">Texto natural para o Planner selecionar o nó</div>
+      </div>
+      <div class="p-slot" onclick="selectProto(1)">
+        <div class="sym">𝒮</div>
+        <div class="sym-name">Inputs</div>
+        <div class="sym-code">NodeSpec.inputs</div>
+        <div class="sym-desc">Portas de entrada: {Key, Type, Desc}</div>
+      </div>
+      <div class="p-slot" onclick="selectProto(2)">
+        <div class="sym">𝒪</div>
+        <div class="sym-name">Outputs</div>
+        <div class="sym-code">NodeSpec.outputs</div>
+        <div class="sym-desc">Artefatos padronizados produzidos</div>
+      </div>
+      <div class="p-slot" onclick="selectProto(3)">
+        <div class="sym">𝒞</div>
+        <div class="sym-name">Config</div>
+        <div class="sym-code">Node.params</div>
+        <div class="sym-desc">Parâmetros estáticos de configuração</div>
+      </div>
+      <div class="p-slot" onclick="selectProto(4)">
+        <div class="sym">Φ</div>
+        <div class="sym-name">Logic</div>
+        <div class="sym-code">build_handler()</div>
+        <div class="sym-desc">Lógica de execução interna</div>
+      </div>
+    </div>
+
+    <div id="proto-detail" class="p-detail">
+      Clique em um símbolo para ver detalhes de implementação.
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0">
+    <div class="card" style="border-color:#353b5a">
+      <div class="card-title"><span class="tag tag-tool">ToolNode</span> Operadores Determinísticos</div>
+      <div class="card-sub" style="margin-top:6px">Execução determinística: <code>O = f_code(I, C)</code>. Idempotente. Sem contexto de raciocínio. Ex: <code>datasource.read</code>, <code>sql.execute</code></div>
+    </div>
+    <div class="card" style="border-color:#353b5a">
+      <div class="card-title"><span class="tag tag-agent">AgentNode</span> Reasoners Probabilísticos</div>
+      <div class="card-sub" style="margin-top:6px">Execução probabilística: <code>O ~ P(· | I, C, W_local, T_internal)</code>. Contexto <strong>privado e isolado</strong>. Ex: <code>dashboard.generate</code>, <code>video.generator</code></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── NODE CATALOG ───────────── -->
+<section id="node-catalog">
+  <h2>Catálogo de Nós</h2>
+  <p>Todos os 8 tipos de nó registrados em <code>packages/backend/app/node/</code>. Filtre por categoria:</p>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filterNodes('all',this)">Todos</button>
+    <button class="filter-btn" onclick="filterNodes('data',this)">Dados</button>
+    <button class="filter-btn" onclick="filterNodes('code',this)">Código</button>
+    <button class="filter-btn" onclick="filterNodes('output',this)">Saídas</button>
+    <button class="filter-btn" onclick="filterNodes('llm',this)">LLM</button>
+  </div>
+
+  <div class="node-cards" id="nodeCatalog">
+    <div class="node-card" data-cat="data">
+      <div class="nc-type">datasource.read</div>
+      <div class="nc-title"><span class="tag tag-tool">Tool</span> Datasource Read</div>
+      <div class="nc-desc">Lê linhas de uma fonte conectada (banco relacional ou arquivo). Retorna rows para downstream.</div>
+      <div class="nc-ports">
+        <span class="nc-port nc-in">in: query</span>
+        <span class="nc-port nc-out">out: rows</span>
+      </div>
+    </div>
+    <div class="node-card" data-cat="data">
+      <div class="nc-type">sql.execute</div>
+      <div class="nc-title"><span class="tag tag-tool">Tool</span> SQL Execute</div>
+      <div class="nc-desc">Executa uma query SQL gerada pelo LLM contra o datasource. Valida antes de rodar.</div>
+      <div class="nc-ports">
+        <span class="nc-port nc-in">in: query</span>
+        <span class="nc-port nc-in">in: datasource_id</span>
+        <span class="nc-port nc-out">out: rows</span>
+      </div>
+    </div>
+    <div class="node-card" data-cat="data">
+      <div class="nc-type">rows.*</div>
+      <div class="nc-title"><span class="tag tag-tool">Tool</span> Row Operations</div>
+      <div class="nc-desc">Família de operações sobre tabelas: <code>profile</code>, <code>select</code>, <code>filter</code>, <code>sort</code>, <code>aggregate</code>, <code>join</code>.</div>
+      <div class="nc-ports">
+        <span class="nc-port nc-in">in: rows</span>
+        <span class="nc-port nc-out">out: rows</span>
+      </div>
+    </div>
+    <div class="node-card" data-cat="code">
+      <div class="nc-type">python.code</div>
+      <div class="nc-title"><span class="tag tag-agent">Agent</span> Python Code</div>
+      <div class="nc-desc">Gera e executa código Python em container Docker isolado por sessão. Acesso ao workspace de arquivos.</div>
+      <div class="nc-ports">
+        <span class="nc-port nc-in">in: data</span>
+        <span class="nc-port nc-out">out: result</span>
+        <span class="nc-port nc-out">out: files</span>
+      </div>
+    </div>
+    <div class="node-card" data-cat="llm">
+      <div class="nc-type">llm.answer</div>
+      <div class="nc-title"><span class="tag tag-agent">Agent</span> LLM Answer</div>
+      <div class="nc-desc">Gera resposta em linguagem natural a partir dos dados de upstream, como nó explícito no workflow.</div>
+      <div class="nc-ports">
+        <span class="nc-port nc-in">in: context</span>
+        <span class="nc-port nc-out">out: answer</span>
+      </div>
+    </div>
+    <div class="node-card" data-cat="output">
+      <div class="nc-type">dashboard.generate</div>
+      <div class="nc-title"><span class="tag tag-agent">Agent</span> NL2Dashboard</div>
+      <div class="nc-desc">Pipeline completo de geração de dashboard interativo: design → engenharia → validação → deploy em container.</div>
+      <div class="nc-ports">
+        <span class="nc-port nc-in">in: data</span>
+        <span class="nc-port nc-in">in: question</span>
+        <span class="nc-port nc-out">out: dashboard_url</span>
+      </div>
+    </div>
+    <div class="node-card" data-cat="output">
+      <div class="nc-type">video.generator</div>
+      <div class="nc-title"><span class="tag tag-agent">Agent</span> Data Video</div>
+      <div class="nc-desc">Gera vídeo narrado e animado com componentes TSX (Remotion). Inclui config de cenas, áudio, animação.</div>
+      <div class="nc-ports">
+        <span class="nc-port nc-in">in: data</span>
+        <span class="nc-port nc-in">in: question</span>
+        <span class="nc-port nc-out">out: video_url</span>
+      </div>
+    </div>
+    <div class="node-card" data-cat="output">
+      <div class="nc-type">report.generate</div>
+      <div class="nc-title"><span class="tag tag-agent">Agent</span> Report Generator</div>
+      <div class="nc-desc">Escreve relatório analítico estruturado em Markdown/HTML com templates. Salvo no MinIO.</div>
+      <div class="nc-ports">
+        <span class="nc-port nc-in">in: data</span>
+        <span class="nc-port nc-in">in: question</span>
+        <span class="nc-port nc-out">out: report_url</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── AGENT TOPOLOGY ───────────── -->
+<section id="agent-topology">
+  <h2>Topologia de Agentes</h2>
+  <p>
+    O stack de agentes é baseado em <strong>LangGraph</strong>. Passe o mouse sobre cada nó para
+    ver o arquivo de implementação e responsabilidades.
+  </p>
+
+  <div class="agent-diagram" id="agentDiagram">
+    <div class="a-flow">
+
+      <!-- Celery Task -->
+      <div class="a-node a-task"
+           data-tip="<strong>Celery Task — agent_tasks.py</strong>Ponto de entrada assíncrono. Instancia o modelo LLM, cria callbacks (AgentCallback) e injeta ferramentas antes de chamar o Supervisor.">
+        <div class="a-type">entry point</div>
+        <div class="a-name">Celery Task</div>
+        <div class="a-file">app/tasks/agent_tasks.py</div>
+      </div>
+      <div class="a-arrow">
+        <svg width="2" height="24"><line x1="1" y1="0" x2="1" y2="24" stroke="#353b5a" stroke-width="1.5" stroke-dasharray="3 2"/></svg>
+        <div class="a-label">instancia + invoca</div>
+        <svg width="2" height="12"><line x1="1" y1="0" x2="1" y2="12" stroke="#353b5a" stroke-width="1.5"/></svg>
+        <svg width="12" height="8" viewBox="0 0 12 8"><polygon points="6,8 0,0 12,0" fill="#353b5a"/></svg>
+      </div>
+
+      <!-- Supervisor -->
+      <div class="a-node a-supervisor"
+           data-tip="<strong>SupervisorAgent — supervisor.py</strong>Orquestrador principal. Subclasse de ReActAgent. Recebe o contexto dos datasources via prompt dinâmico. Decide: resposta direta OU chama WorkflowAgent. Extrai final_answer do ToolMessage do workflow.">
+        <div class="a-type">orquestrador</div>
+        <div class="a-name">SupervisorAgent</div>
+        <div class="a-file">core/deepeye/agents/supervisor.py</div>
+      </div>
+      <div class="a-arrow">
+        <svg width="2" height="24"><line x1="1" y1="0" x2="1" y2="24" stroke="#353b5a" stroke-width="1.5" stroke-dasharray="3 2"/></svg>
+        <div class="a-label">tool call: workflow_agent</div>
+        <svg width="2" height="12"><line x1="1" y1="0" x2="1" y2="12" stroke="#353b5a" stroke-width="1.5"/></svg>
+        <svg width="12" height="8" viewBox="0 0 12 8"><polygon points="6,8 0,0 12,0" fill="#353b5a"/></svg>
+      </div>
+
+      <!-- WorkflowAgent -->
+      <div class="a-node a-workflow"
+           data-tip="<strong>WorkflowAgent — workflow_agent.py</strong>Responsável por gerar o JSON do workflow DAG. Chama as ferramentas: create_workflow, update_workflow, run_workflow_from_file. Contexto privado (W_local) — o Supervisor não vê o raciocínio interno.">
+        <div class="a-type">planejador</div>
+        <div class="a-name">WorkflowAgent</div>
+        <div class="a-file">core/deepeye/agents/workflow_agent.py</div>
+      </div>
+      <div class="a-arrow">
+        <svg width="2" height="24"><line x1="1" y1="0" x2="1" y2="24" stroke="#353b5a" stroke-width="1.5" stroke-dasharray="3 2"/></svg>
+        <div class="a-label">workflow JSON → run()</div>
+        <svg width="2" height="12"><line x1="1" y1="0" x2="1" y2="12" stroke="#353b5a" stroke-width="1.5"/></svg>
+        <svg width="12" height="8" viewBox="0 0 12 8"><polygon points="6,8 0,0 12,0" fill="#353b5a"/></svg>
+      </div>
+
+      <!-- Engine -->
+      <div class="a-node a-engine"
+           data-tip="<strong>ExecutionEngine — engine.py</strong>Compiler → Validator → Topological Sort (Kahn) → Executor. Valida NodeSpec, resolve inputs entre nós, chama NodeHandler, coleta NodeRun com status/inputs/outputs/timestamps.">
+        <div class="a-type">execução</div>
+        <div class="a-name">ExecutionEngine</div>
+        <div class="a-file">core/deepeye/workflows/engine.py</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Context Isolation:</strong> o Supervisor enxerga apenas as interfaces I/O padronizadas
+    de cada AgentNode — nunca o raciocínio interno (<code>W_local</code>).
+    Isso previne o context explosion descrito no C2.
+  </div>
+</section>
+
+<!-- ───────────── MEMORY PLANNER ───────────── -->
+<section id="planner">
+  <h2>Memory-Augmented Planner</h2>
+  <p>
+    O Planner usa <strong>dual-memory</strong> para traduzir requisições em DAGs executáveis:
+    memória de curto prazo para o turno atual e base de conhecimento de longo prazo para
+    reuso de workflows históricos.
+  </p>
+
+  <div class="memory-diagram">
+    <div class="mem-box" style="border-color:#6c63ff44">
+      <div class="mem-title">⚡ Working Memory <small style="color:var(--muted);font-weight:400">(Short-term)</small></div>
+      <ul>
+        <li>Histórico de diálogo multi-turno</li>
+        <li>Variáveis intermediárias do workflow</li>
+        <li>Feedback de erros do Engine (ex: SQL inválido)</li>
+        <li>Estado da sessão atual</li>
+      </ul>
+    </div>
+    <div class="mem-box" style="border-color:#00d4aa44">
+      <div class="mem-title">🗃️ Knowledge Base <small style="color:var(--muted);font-weight:400">(Long-term, vector store)</small></div>
+      <ul>
+        <li>Schema Metadata — colunas e tipos das fontes</li>
+        <li>Domain Documentation — PDFs, TXTs indexados</li>
+        <li>SOP Experience — workflows verificados e salvos</li>
+        <li>Templates de expert criados manualmente na UI</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Ciclo de vida do planejamento</h3>
+  <div class="planning-cycle">
+    <div class="pc-step">
+      <div class="pc-icon">📥</div>
+      <div class="pc-label">Pre-Execution</div>
+      <div class="pc-sub">RAG recupera SOPs e docs relevantes → in-context demonstrations</div>
+    </div>
+    <div class="pc-arrow">→</div>
+    <div class="pc-step">
+      <div class="pc-icon">🧩</div>
+      <div class="pc-label">Planning</div>
+      <div class="pc-sub">Reutiliza SOP ou sintetiza novo DAG a partir do catálogo de nós</div>
+    </div>
+    <div class="pc-arrow">→</div>
+    <div class="pc-step">
+      <div class="pc-icon">🔄</div>
+      <div class="pc-label">Self-Correction</div>
+      <div class="pc-sub">Erros de execução entram na Working Memory → re-planning</div>
+    </div>
+    <div class="pc-arrow">→</div>
+    <div class="pc-step">
+      <div class="pc-icon">💾</div>
+      <div class="pc-label">Post-Execution</div>
+      <div class="pc-sub">Workflows bem-sucedidos são auto-arquivados na Knowledge Base</div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── WORKFLOW ENGINE ───────────── -->
+<section id="workflow-engine">
+  <h2>Workflow Engine — Simulador</h2>
+  <p>
+    O engine passa por 4 fases (inspiradas em DBMS query engines) antes de executar.
+    Use os controles abaixo para simular a execução de um workflow de exemplo.
+  </p>
+
+  <div class="engine-sim">
+    <!-- Phases -->
+    <div class="engine-phases">
+      <div class="e-phase" id="ph0">
+        <div class="ph-num">1</div>
+        <div class="ph-name">Compiler</div>
+        <div class="ph-status" id="ph0s">aguardando</div>
+      </div>
+      <div class="e-phase" id="ph1">
+        <div class="ph-num">2</div>
+        <div class="ph-name">Validator</div>
+        <div class="ph-status" id="ph1s">aguardando</div>
+      </div>
+      <div class="e-phase" id="ph2">
+        <div class="ph-num">3</div>
+        <div class="ph-name">Optimizer</div>
+        <div class="ph-status" id="ph2s">aguardando</div>
+      </div>
+      <div class="e-phase" id="ph3">
+        <div class="ph-num">4</div>
+        <div class="ph-name">Executor</div>
+        <div class="ph-status" id="ph3s">aguardando</div>
+      </div>
+    </div>
+
+    <!-- DAG visualization -->
+    <div class="dag-area">
+      <div class="dag-svg-wrap">
+        <svg id="dagSvg" width="580" height="160" viewBox="0 0 580 160">
+          <defs>
+            <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#353b5a"/>
+            </marker>
+            <marker id="arrowActive" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#ffd93d"/>
+            </marker>
+          </defs>
+
+          <!-- edges -->
+          <line class="dag-edge" id="e01" x1="122" y1="80" x2="168" y2="50" marker-end="url(#arrow)"/>
+          <line class="dag-edge" id="e02" x1="122" y1="80" x2="168" y2="110" marker-end="url(#arrow)"/>
+          <line class="dag-edge" id="e13" x1="282" y1="50" x2="328" y2="50" marker-end="url(#arrow)"/>
+          <line class="dag-edge" id="e23" x1="282" y1="110" x2="328" y2="110" marker-end="url(#arrow)"/>
+          <line class="dag-edge" id="e34" x1="442" y1="50" x2="488" y2="80" marker-end="url(#arrow)"/>
+          <line class="dag-edge" id="e44" x1="442" y1="110" x2="488" y2="80" marker-end="url(#arrow)"/>
+
+          <!-- nodes -->
+          <g class="dag-node idle" id="dn0">
+            <rect x="2" y="60" width="120" height="40"/>
+            <text x="62" y="77" text-anchor="middle">datasource.read</text>
+            <text x="62" y="91" text-anchor="middle" class="sub">layer 0</text>
+          </g>
+          <g class="dag-node idle" id="dn1">
+            <rect x="170" y="30" width="110" height="40"/>
+            <text x="225" y="47" text-anchor="middle">knowledge</text>
+            <text x="225" y="61" text-anchor="middle" class="sub">.search · layer 1</text>
+          </g>
+          <g class="dag-node idle parallel" id="dn2">
+            <rect x="170" y="90" width="110" height="40"/>
+            <text x="225" y="107" text-anchor="middle">sql.execute</text>
+            <text x="225" y="121" text-anchor="middle" class="sub">layer 1 ∥</text>
+          </g>
+          <g class="dag-node idle" id="dn3">
+            <rect x="330" y="30" width="110" height="40"/>
+            <text x="385" y="47" text-anchor="middle">dashboard</text>
+            <text x="385" y="61" text-anchor="middle" class="sub">.generate · layer 2</text>
+          </g>
+          <g class="dag-node idle" id="dn4">
+            <rect x="330" y="90" width="110" height="40"/>
+            <text x="385" y="107" text-anchor="middle">report.generate</text>
+            <text x="385" y="121" text-anchor="middle" class="sub">layer 2 ∥</text>
+          </g>
+          <g class="dag-node idle" id="dn5">
+            <rect x="490" y="60" width="88" height="40"/>
+            <text x="534" y="77" text-anchor="middle">llm.answer</text>
+            <text x="534" y="91" text-anchor="middle" class="sub">layer 3</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="sim-controls">
+      <button class="sim-btn primary" id="simRun" onclick="simStep()">▶ Executar passo</button>
+      <button class="sim-btn" onclick="simReset()">↺ Reset</button>
+      <span style="font-size:.78rem;color:var(--muted)" id="simPhaseLabel">Clique em "Executar passo" para iniciar a simulação.</span>
+    </div>
+    <div class="sim-log" id="simLog"></div>
+  </div>
+
+  <h3>O que o Validator verifica</h3>
+  <table class="tbl">
+    <thead><tr><th>Código de erro</th><th>Verificação</th></tr></thead>
+    <tbody>
+      <tr><td><code>node.type.unknown</code></td><td>Tipo de nó existe no NodeRegistry</td></tr>
+      <tr><td><code>node.input.unknown</code></td><td>Porta de input existe no NodeSpec</td></tr>
+      <tr><td><code>edge.schema.incompatible</code></td><td>Schema de saída é compatível com o input de destino</td></tr>
+      <tr><td><code>input.required.missing</code></td><td>Inputs obrigatórios têm ao menos uma aresta incoming</td></tr>
+      <tr><td><code>param.required.missing</code></td><td>Params obrigatórios estão presentes no nó</td></tr>
+      <tr><td><code>input.multiple.violation</code></td><td>Inputs non-multiple não têm mais de uma aresta</td></tr>
+      <tr><td><code>graph.cycle</code></td><td>Grafo é acíclico (DFS-based detection)</td></tr>
+      <tr><td><code>group.*</code></td><td>Nós group têm grafos internos válidos e mapeamentos consistentes</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ───────────── SANDBOX ───────────── -->
+<section id="sandbox">
+  <h2>Sandbox Docker</h2>
+  <p>
+    Todo código Python gerado pela IA roda em containers Docker isolados por sessão —
+    nunca no processo principal do servidor. O <strong>RuntimeControl service</strong> (porta 8010)
+    é o único que acessa o socket Docker, mantendo a API principal sem privilégios elevados.
+  </p>
+
+  <div class="sandbox-flow">
+    <div class="sf-step">
+      <div class="sf-num">1</div>
+      <div class="sf-content">
+        <div class="sf-title">SandboxManager cria o container</div>
+        <div class="sf-desc"><code>get_or_create_sandbox(session_id)</code> — um container por sessão, com volume workspace montado para persistir arquivos entre os nós do workflow.</div>
+      </div>
+    </div>
+    <div class="sf-step">
+      <div class="sf-num">2</div>
+      <div class="sf-content">
+        <div class="sf-title">Código enviado via RuntimeControl</div>
+        <div class="sf-desc">O Celery worker manda o código gerado para <code>:8010/execute</code>. O RuntimeControl usa a Docker API para rodar dentro do container de sandbox.</div>
+      </div>
+    </div>
+    <div class="sf-step">
+      <div class="sf-num">3</div>
+      <div class="sf-content">
+        <div class="sf-title">Resultado via arquivo no workspace</div>
+        <div class="sf-desc">O código salva output em CSV/JSON no volume compartilhado. O nó seguinte do workflow lê esses arquivos — dados fluem entre nós via filesystem, não memória.</div>
+      </div>
+    </div>
+    <div class="sf-step">
+      <div class="sf-num">4</div>
+      <div class="sf-content">
+        <div class="sf-title">ActivityTracker e cleanup automático</div>
+        <div class="sf-desc">Idle &gt; <code>SANDBOX_IDLE_TIMEOUT</code> → container para. Idle &gt; <code>SANDBOX_DESTROY_TIMEOUT</code> → container destruído. Ao fechar o app, todos são destruídos.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <strong>Dashboard e Video</strong> usam imagens Docker separadas
+    (<code>Dockerfile.dashboard</code>, <code>Dockerfile.video-preview</code>)
+    lançadas por task — não são o mesmo container de sandbox Python.
+  </div>
+</section>
+
+<!-- ───────────── EVENTS ───────────── -->
+<section id="events">
+  <h2>Sistema de Eventos SSE</h2>
+  <p>
+    Eventos de execução fluem do Celery worker ao frontend em tempo real via Redis pub/sub → SSE.
+  </p>
+
+  <div class="event-flow">
+    <div class="ef-row">
+      <div class="ef-node">
+        <div class="ef-icon">⚙️</div>
+        <div class="ef-label">NodeHandler</div>
+        <div class="ef-sub">executa</div>
+      </div>
+      <div class="ef-arrow">
+        <svg viewBox="0 0 60 20" height="20"><line x1="0" y1="10" x2="50" y2="10" stroke="#353b5a" stroke-width="1.5" marker-end="url(#arrow)"/></svg>
+        <div class="ef-msg">LangChain callback</div>
+      </div>
+      <div class="ef-node">
+        <div class="ef-icon">📡</div>
+        <div class="ef-label">AgentCallback</div>
+        <div class="ef-sub">app/tasks/callbacks.py</div>
+      </div>
+      <div class="ef-arrow">
+        <svg viewBox="0 0 60 20" height="20"><line x1="0" y1="10" x2="50" y2="10" stroke="#353b5a" stroke-width="1.5" marker-end="url(#arrow)"/></svg>
+        <div class="ef-msg">PUBLISH session_id</div>
+      </div>
+      <div class="ef-node">
+        <div class="ef-icon">🟥</div>
+        <div class="ef-label">Redis</div>
+        <div class="ef-sub">pub/sub channel</div>
+      </div>
+      <div class="ef-arrow">
+        <svg viewBox="0 0 60 20" height="20"><line x1="0" y1="10" x2="50" y2="10" stroke="#353b5a" stroke-width="1.5" marker-end="url(#arrow)"/></svg>
+        <div class="ef-msg">SSE stream</div>
+      </div>
+      <div class="ef-node">
+        <div class="ef-icon">🖥️</div>
+        <div class="ef-label">Frontend</div>
+        <div class="ef-sub">EventSource</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Phases do workflow_event (protocolo alvo — RFC)</h3>
+  <div class="event-phases">
+    <div class="ev-phase">turn_started</div>
+    <div class="ev-phase">draft_created</div>
+    <div class="ev-phase">validation_passed</div>
+    <div class="ev-phase">validation_failed</div>
+    <div class="ev-phase">run_started</div>
+    <div class="ev-phase">node_started</div>
+    <div class="ev-phase">node_log</div>
+    <div class="ev-phase">node_finished</div>
+    <div class="ev-phase">artifact_ready</div>
+    <div class="ev-phase">run_finished</div>
+    <div class="ev-phase">turn_finished</div>
+    <div class="ev-phase">turn_failed</div>
+  </div>
+  <p style="margin-top:8px">Ver detalhes completos em <code>docs/rfcs/workflow_native_agent_refactor.md</code>.</p>
+</section>
+
+<!-- ───────────── INFRA ───────────── -->
+<section id="infra">
+  <h2>Infraestrutura Docker</h2>
+  <p>Todos os serviços levantados com <code>docker compose up --build</code>. Porta pública: <strong>8080</strong> (Nginx).</p>
+
+  <div class="infra-grid">
+    <div class="svc-card">
+      <div class="svc-header">
+        <div class="svc-name">gateway</div>
+        <div class="svc-port">host:8080</div>
+      </div>
+      <div class="svc-desc">Nginx. Proxy reverso: <code>/api/*</code> → backend, <code>/</code> → frontend.</div>
+      <div class="svc-tech"><span>Nginx</span></div>
+    </div>
+    <div class="svc-card">
+      <div class="svc-header">
+        <div class="svc-name">backend-api</div>
+        <div class="svc-port">interno:8000</div>
+      </div>
+      <div class="svc-desc">API REST, SSE, auth JWT, gerencia sessões, inicia tasks Celery.</div>
+      <div class="svc-tech"><span>FastAPI</span><span>SQLAlchemy</span><span>Pydantic</span></div>
+    </div>
+    <div class="svc-card">
+      <div class="svc-header">
+        <div class="svc-name">backend-worker</div>
+        <div class="svc-port">sem porta</div>
+      </div>
+      <div class="svc-desc">Celery worker. Executa agent tasks e workflow tasks de forma assíncrona.</div>
+      <div class="svc-tech"><span>Celery</span><span>LangGraph</span></div>
+    </div>
+    <div class="svc-card">
+      <div class="svc-header">
+        <div class="svc-name">runtime-control</div>
+        <div class="svc-port">interno:8010</div>
+      </div>
+      <div class="svc-desc">Microsserviço separado que gerencia containers Docker de sandbox. Único com acesso ao socket Docker.</div>
+      <div class="svc-tech"><span>FastAPI</span><span>Docker SDK</span></div>
+    </div>
+    <div class="svc-card">
+      <div class="svc-header">
+        <div class="svc-name">postgres</div>
+        <div class="svc-port">interno:5432</div>
+      </div>
+      <div class="svc-desc">Banco principal: usuários, sessões, workflows, datasources, artefatos. Migrations via Alembic.</div>
+      <div class="svc-tech"><span>PostgreSQL 15</span><span>Alembic</span></div>
+    </div>
+    <div class="svc-card">
+      <div class="svc-header">
+        <div class="svc-name">redis</div>
+        <div class="svc-port">interno:6379</div>
+      </div>
+      <div class="svc-desc">Broker de tasks do Celery + pub/sub para eventos SSE em tempo real.</div>
+      <div class="svc-tech"><span>Redis 7</span></div>
+    </div>
+    <div class="svc-card">
+      <div class="svc-header">
+        <div class="svc-name">minio</div>
+        <div class="svc-port">interno:9000</div>
+      </div>
+      <div class="svc-desc">Object storage S3-compatível. Armazena vídeos, dashboards, relatórios, arquivos de upload.</div>
+      <div class="svc-tech"><span>MinIO</span><span>S3 API</span></div>
+    </div>
+    <div class="svc-card">
+      <div class="svc-header">
+        <div class="svc-name">frontend</div>
+        <div class="svc-port">via nginx</div>
+      </div>
+      <div class="svc-desc">SPA React 19. Build estático servido pelo Nginx. ReactFlow para DAG, Remotion para vídeo.</div>
+      <div class="svc-tech"><span>React 19</span><span>Vite</span><span>Zustand</span><span>ReactFlow</span></div>
+    </div>
+    <div class="svc-card">
+      <div class="svc-header">
+        <div class="svc-name">backend-migrate</div>
+        <div class="svc-port">job único</div>
+      </div>
+      <div class="svc-desc">Roda <code>alembic upgrade head</code> ao iniciar o stack. Sai após completar.</div>
+      <div class="svc-tech"><span>Alembic</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── E2E FLOW ───────────── -->
+<section id="e2e">
+  <h2>Fluxo Completo — End-to-End</h2>
+  <p>
+    Clique em "Avançar" para percorrer o caminho de uma mensagem completa do usuário
+    até os artefatos aparecerem na tela.
+  </p>
+
+  <div style="display:flex;gap:10px;margin-bottom:16px">
+    <button class="sim-btn primary" id="e2eNext" onclick="e2eAdvance()">▶ Avançar</button>
+    <button class="sim-btn" onclick="e2eReset()">↺ Reset</button>
+    <span style="font-size:.78rem;color:var(--muted)" id="e2eLabel">Passo 0 de 10</span>
+  </div>
+
+  <div class="e2e-wrap" id="e2eSteps">
+    <div class="e2e-step" id="e2e0">
+      <div class="e2e-num">1</div>
+      <div class="e2e-content">
+        <div class="e2e-title">Usuário digita no chat</div>
+        <div class="e2e-desc">"<em>@Sales Database @Financial Metrics — Analise as vendas globais de 2025, gere vídeo, dashboard e relatório.</em>"</div>
+      </div>
+    </div>
+    <div class="e2e-step" id="e2e1">
+      <div class="e2e-num">2</div>
+      <div class="e2e-content">
+        <div class="e2e-title">Frontend → POST /api/v1/chat</div>
+        <div class="e2e-desc">Envia <code>session_id</code>, <code>message</code> e <code>datasource_ids</code> dos contextos selecionados.</div>
+      </div>
+    </div>
+    <div class="e2e-step" id="e2e2">
+      <div class="e2e-num">3</div>
+      <div class="e2e-content">
+        <div class="e2e-title">Backend enfileira Celery task</div>
+        <div class="e2e-desc">Cria <code>ChatTurn</code>, enfileira <code>run_agent_workflow()</code> no Redis. Responde imediatamente com <code>turn_id</code>.</div>
+      </div>
+    </div>
+    <div class="e2e-step" id="e2e3">
+      <div class="e2e-num">4</div>
+      <div class="e2e-content">
+        <div class="e2e-title">SupervisorAgent analisa a requisição</div>
+        <div class="e2e-desc">Recebe contexto dos datasources no system prompt. Decide: tarefa complexa → chama <code>workflow_agent</code> tool.</div>
+      </div>
+    </div>
+    <div class="e2e-step" id="e2e4">
+      <div class="e2e-num">5</div>
+      <div class="e2e-content">
+        <div class="e2e-title">WorkflowAgent gera o DAG JSON</div>
+        <div class="e2e-desc">Plano com 6 nós: <code>datasource.read</code> + <code>knowledge.search</code> → <code>sql.execute</code> → <code>video.generator</code> + <code>dashboard.generate</code> + <code>report.generate</code></div>
+      </div>
+    </div>
+    <div class="e2e-step" id="e2e5">
+      <div class="e2e-num">6</div>
+      <div class="e2e-content">
+        <div class="e2e-title">Compiler → Validator → Optimizer</div>
+        <div class="e2e-desc">JSON compilado em objetos tipados. Validator checa schemas e DAG. Optimizer identifica <code>datasource.read</code> e <code>knowledge.search</code> como independentes → layer paralela.</div>
+      </div>
+    </div>
+    <div class="e2e-step" id="e2e6">
+      <div class="e2e-num">7</div>
+      <div class="e2e-content">
+        <div class="e2e-title">Executor roda os nós em ordem topológica</div>
+        <div class="e2e-desc">Layer 1 (paralelo): <code>datasource.read</code> ∥ <code>knowledge.search</code>. Layer 2: <code>sql.execute</code>. Layer 3 (paralelo): <code>video.generator</code> ∥ <code>dashboard.generate</code> ∥ <code>report.generate</code>.</div>
+      </div>
+    </div>
+    <div class="e2e-step" id="e2e7">
+      <div class="e2e-num">8</div>
+      <div class="e2e-content">
+        <div class="e2e-title">Nós com código rodam no Sandbox Docker</div>
+        <div class="e2e-desc">Python code, video rendering e dashboard generation executam em containers isolados. Arquivos de output salvos no volume workspace.</div>
+      </div>
+    </div>
+    <div class="e2e-step" id="e2e8">
+      <div class="e2e-num">9</div>
+      <div class="e2e-content">
+        <div class="e2e-title">Artefatos persistidos no MinIO</div>
+        <div class="e2e-desc">Vídeo .mp4, dashboard JSON/URL e relatório HTML salvos no object storage com metadados no PostgreSQL.</div>
+      </div>
+    </div>
+    <div class="e2e-step" id="e2e9">
+      <div class="e2e-num">10</div>
+      <div class="e2e-content">
+        <div class="e2e-title">Eventos SSE → Frontend renderiza</div>
+        <div class="e2e-desc">A cada nó concluído, <code>AgentCallback</code> publica no Redis → SSE chega ao frontend → painel direito exibe vídeo, dashboard e relatório em tempo real.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── EXTEND ───────────── -->
+<section id="extend">
+  <h2>Como Estender</h2>
+
+  <h3>Adicionar um novo nó</h3>
+  <pre>
+<span class="cm"># 1. packages/backend/app/node/&lt;domain&gt;/my_node.py</span>
+<span class="kw">from</span> deepeye.workflows.registry <span class="kw">import</span> <span class="cls">NodeSpec</span>
+<span class="kw">from</span> deepeye.workflows.models <span class="kw">import</span> <span class="cls">Port</span>
+<span class="kw">from</span> app.node.core.base <span class="kw">import</span> <span class="cls">BaseNode</span>
+
+<span class="kw">class</span> <span class="cls">MyExportNode</span>(<span class="cls">BaseNode</span>):
+    node_type = <span class="str">"data.export_csv"</span>
+
+    <span class="kw">@classmethod</span>
+    <span class="kw">def</span> <span class="fn">spec</span>(cls) -> <span class="cls">NodeSpec</span>:
+        <span class="kw">return</span> <span class="cls">NodeSpec</span>(
+            type=cls.node_type,
+            description=<span class="str">"Export rows to a CSV file"</span>,
+            inputs={<span class="str">"rows"</span>: <span class="cls">Port</span>(schema_=<span class="str">"list[dict]"</span>, required=<span class="kw">True</span>, multiple=<span class="kw">True</span>)},
+            outputs={<span class="str">"path"</span>: <span class="cls">Port</span>(schema_=<span class="str">"string"</span>)},
+            params_schema={<span class="str">"filename"</span>: {<span class="str">"type"</span>: <span class="str">"string"</span>, <span class="str">"required"</span>: <span class="kw">True</span>}},
+        )
+
+    <span class="kw">@classmethod</span>
+    <span class="kw">def</span> <span class="fn">build_handler</span>(cls, db, user_id, sandbox=<span class="kw">None</span>):
+        <span class="kw">async def</span> <span class="fn">handler</span>(node, inputs, context):
+            rows = inputs.get(<span class="str">"rows"</span>, [])
+            filename = node.params.get(<span class="str">"filename"</span>, <span class="str">"export.csv"</span>)
+            <span class="cm"># ... write to sandbox workspace ...</span>
+            <span class="kw">return</span> {<span class="str">"path"</span>: f<span class="str">"/workspace/{filename}"</span>}
+        <span class="kw">return</span> type(<span class="str">"H"</span>, (), {<span class="str">"execute"</span>: staticmethod(handler)})()
+
+<span class="cm"># 2. Em packages/backend/app/node/__init__.py — adicione à NODE_MODULES:
+# "app.node.&lt;domain&gt;.my_node"
+# O registro é automático — /api/v1/workflow-nodes retorna o novo nó.</span>
+  </pre>
+
+  <h3>Adicionar um novo agente</h3>
+  <pre>
+<span class="cm"># packages/core/deepeye/agents/log_agent.py</span>
+<span class="kw">from</span> deepeye.agents.react_agent <span class="kw">import</span> <span class="cls">ReActAgent</span>
+
+<span class="kw">class</span> <span class="cls">LogAnalysisAgent</span>(<span class="cls">ReActAgent</span>):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, model, tools=<span class="kw">None</span>, **kwargs):
+        <span class="fn">super().__init__</span>(
+            model=model,
+            tools=tools <span class="kw">or</span> [],
+            system_prompt=<span class="str">"You are a log analysis assistant."</span>,
+            **kwargs,
+        )
+
+<span class="cm"># Em agent_tasks.py: adicione a ferramenta que envolve o agente.
+# No supervisor prompt: adicione a regra de quando invocá-lo.</span>
+  </pre>
+
+  <hr/>
+  <p style="text-align:center;font-size:.75rem;color:var(--dim)">
+    DeepEye Architecture · SIGMOD Companion '26 · Li et al. ·
+    <a href="https://doi.org/10.1145/3788853.3801612" style="color:var(--dim)">doi:10.1145/3788853.3801612</a>
+  </p>
+</section>
+
+</main>
+
+<!-- ═══════════════ TOOLTIP ═══════════════ -->
+<div class="a-tooltip" id="tooltip"></div>
+
+<script>
+// ── Scroll spy ────────────────────────────────────────────
+const links = document.querySelectorAll('.sidebar-link');
+const sections = [...document.querySelectorAll('section[id]')];
+const observer = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      links.forEach(l=>l.classList.remove('active'));
+      const active = document.querySelector(`.sidebar-link[href="#${e.target.id}"]`);
+      if(active) active.classList.add('active');
+    }
+  });
+},{threshold:.25});
+sections.forEach(s=>observer.observe(s));
+
+// ── Layer detail ──────────────────────────────────────────
+const layerDetails = {
+  datasources:`<strong>Camada de Dados</strong> — suporta PostgreSQL, MySQL, CSV, Excel, JSON, XML (estruturados); PDF, TXT, Markdown (não-estruturados indexados como Knowledge Base). Cada fonte é representada por um <code>DataSource</code> com metadata de schema.`,
+  planner:`<strong>Memory-Augmented Planner</strong> — SupervisorAgent + WorkflowAgent. Usa memória dual: <em>Working Memory</em> (estado do turno atual) e <em>Knowledge Base</em> (SOPs históricos, docs, schema). Consulta a KB via RAG antes de planejar.`,
+  engine:`<strong>Workflow Engine</strong> — pipeline de 4 fases: Compiler (JSON → objetos tipados), Validator (checagens estáticas de schema e DAG), Optimizer (topological sort → layers paralelas), Executor (NodeHandlers → NodeRun → artefatos). Erros alimentam de volta o Planner.`,
+  outputs:`<strong>Artefatos de Saída</strong> — Data Videos (.mp4 com Remotion), Dashboards interativos (NL2Dashboard engine), Relatórios analíticos (HTML/Markdown). Todos salvos no MinIO com metadados no PostgreSQL.`,
+};
+function selectLayer(key){
+  const el = document.getElementById('layer-detail');
+  el.innerHTML = layerDetails[key];
+  el.style.display = 'block';
+}
+
+// ── Node Protocol ─────────────────────────────────────────
+const protoDetails = [
+  `<strong>𝒟 — Semantic Description:</strong> String em linguagem natural que descreve a funcionalidade do nó. O Planner usa isso para <strong>recuperação semântica e seleção de ferramenta</strong>. Ex: <code>"Executa uma query SQL contra um datasource conectado e retorna as linhas."</code> Implementado como <code>NodeSpec.description</code> em <code>packages/core/deepeye/workflows/registry.py</code>.`,
+  `<strong>𝒮 — Input Ports:</strong> Conjunto de portas de entrada, cada uma com triplet <code>⟨Key, Type, Desc⟩</code>. Implementado como <code>NodeSpec.inputs: dict[str, Port]</code> onde <code>Port</code> tem <code>schema_</code>, <code>required</code>, <code>multiple</code> e <code>default</code>. O Validator usa os inputs do NodeSpec (não do Node) como source of truth.`,
+  `<strong>𝒪 — Output Ports:</strong> Artefatos padronizados produzidos. O Executor valida que o handler retornou <em>exatamente</em> os outputs declarados no NodeSpec — campos extras causam <code>ValueError</code>. Downstream nodes acessam outputs via <code>context.runs[node_id].outputs[port_id]</code>.`,
+  `<strong>𝒞 — Configuration Parameters:</strong> Parâmetros estáticos (ex: <code>datasource_id</code>, <code>query</code>, <code>language</code>). Definidos em <code>NodeSpec.params_schema</code> (JSON Schema) e preenchidos em <code>Node.params</code> pelo Planner. O Validator checa params required antes da execução.`,
+  `<strong>Φ — Execution Logic:</strong> Implementado em <code>BaseNode.build_handler(db, user_id, ...)</code>. Para ToolNodes: função determinística pura. Para AgentNodes: sub-agente LLM com <code>W_local</code> privado. O handler recebe <code>(node, inputs, context)</code> e retorna <code>dict</code> de outputs.`,
+];
+function selectProto(i){
+  document.querySelectorAll('.p-slot').forEach((s,j)=>s.classList.toggle('active',j===i));
+  document.getElementById('proto-detail').innerHTML = protoDetails[i];
+}
+
+// ── Node Catalog filter ───────────────────────────────────
+function filterNodes(cat, btn){
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.node-card').forEach(c=>{
+    c.style.display = (cat==='all'||c.dataset.cat===cat) ? '' : 'none';
+  });
+}
+
+// ── Agent tooltip ─────────────────────────────────────────
+const tooltip = document.getElementById('tooltip');
+document.querySelectorAll('.a-node[data-tip]').forEach(node=>{
+  node.addEventListener('mouseenter',e=>{
+    tooltip.innerHTML = node.dataset.tip;
+    tooltip.classList.add('show');
+  });
+  node.addEventListener('mousemove',e=>{
+    const x = Math.min(e.clientX+14, window.innerWidth-280);
+    const y = Math.min(e.clientY+14, window.innerHeight-120);
+    tooltip.style.left = x+'px';
+    tooltip.style.top  = y+'px';
+  });
+  node.addEventListener('mouseleave',()=>tooltip.classList.remove('show'));
+});
+
+// ── Workflow Engine Simulator ─────────────────────────────
+let simState = 0;
+// nodes: 0=datasource.read, 1=knowledge.search, 2=sql.execute, 3=dashboard, 4=report, 5=llm.answer
+const dagNodes = ['dn0','dn1','dn2','dn3','dn4','dn5'];
+const dagEdges = ['e01','e02','e13','e23','e34','e44'];
+
+const SIM_STEPS = [
+  {
+    phase:0, status:'Compilando…', phaseLabel:'Fase 1 — Compiler: parseando JSON do plano',
+    log:'[Compiler] Lendo workflow JSON...\n[Compiler] Instanciando 6 nodes e 6 edges\n[Compiler] Resolvendo referências de variáveis entre nodes\n[Compiler] ✓ Workflow Object criado',
+    nodes:[], edges:[], class:'active'
+  },
+  {
+    phase:0, status:'✓ Compilado', phaseLabel:'Fase 1 concluída',
+    log:'[Compiler] ✓ Concluído — 6 nodes, 6 edges',
+    nodes:dagNodes, edges:[], nodeClass:'idle', phaseClass:'done'
+  },
+  {
+    phase:1, status:'Validando…', phaseLabel:'Fase 2 — Validator: checando schema e DAG',
+    log:'[Validator] Checando tipos de nó no NodeRegistry...\n[Validator] Verificando portas de I/O contra NodeSpec...\n[Validator] Detectando ciclos via DFS...\n[Validator] Checando inputs required...\n[Validator] Checando params required...',
+    phaseClass:'active'
+  },
+  {
+    phase:1, status:'✓ Válido', phaseLabel:'Fase 2 concluída — nenhuma violação encontrada',
+    log:'[Validator] ✓ 0 erros de validação — workflow aprovado para execução',
+    phaseClass:'done'
+  },
+  {
+    phase:2, status:'Otimizando…', phaseLabel:"Fase 3 — Optimizer: Kahn's topological sort",
+    log:"[Optimizer] Aplicando Kahn's Algorithm...\n[Optimizer] Layer 0: ['datasource.read'] — in-degree 0\n[Optimizer] Layer 1: ['knowledge.search', 'sql.execute'] — PARALELO ∥\n[Optimizer] Layer 2: ['dashboard.generate', 'report.generate'] — PARALELO ∥\n[Optimizer] Layer 3: ['llm.answer']",
+    nodes:['dn1','dn2'], nodeClass:'parallel', phaseClass:'active'
+  },
+  {
+    phase:2, status:'✓ Otimizado', phaseLabel:'Fase 3 concluída — 3 layers identificadas, 2 paralelas',
+    log:'[Optimizer] ✓ 3 execution layers. Nodes 1+2 paralelos, nodes 3+4 paralelos.',
+    phaseClass:'done'
+  },
+  {
+    phase:3, status:'Executando…', phaseLabel:'Fase 4 — Executor: layer 0',
+    log:'[Executor] → node:datasource.read [running]',
+    nodes:['dn0'], nodeClass:'running', edges:[], phaseClass:'active'
+  },
+  {
+    phase:3, status:'Executando…', phaseLabel:'Fase 4 — layer 1 (paralelo)',
+    log:'[Executor] ✓ datasource.read [done]\n[Executor] → node:knowledge.search [running] ∥\n[Executor] → node:sql.execute [running] ∥',
+    done:['dn0'], running:['dn1','dn2'], activeEdges:['e01','e02'], phaseClass:'active'
+  },
+  {
+    phase:3, status:'Executando…', phaseLabel:'Fase 4 — layer 2 (paralelo)',
+    log:'[Executor] ✓ knowledge.search [done]\n[Executor] ✓ sql.execute [done]\n[Executor] → node:dashboard.generate [running] ∥\n[Executor] → node:report.generate [running] ∥',
+    done:['dn0','dn1','dn2'], running:['dn3','dn4'], activeEdges:['e13','e23'], phaseClass:'active'
+  },
+  {
+    phase:3, status:'Executando…', phaseLabel:'Fase 4 — layer 3',
+    log:'[Executor] ✓ dashboard.generate [done]\n[Executor] ✓ report.generate [done]\n[Executor] → node:llm.answer [running]',
+    done:['dn0','dn1','dn2','dn3','dn4'], running:['dn5'], activeEdges:['e34','e44'], phaseClass:'active'
+  },
+  {
+    phase:3, status:'✓ Concluído', phaseLabel:'Execução completa — todos os artefatos gerados',
+    log:'[Executor] ✓ llm.answer [done]\n[Executor] ✓ workflow status: SUCCESS\n[Executor] Artefatos: dashboard_url, video_url, report_url\n[Executor] ExecutionContext serializado e salvo.',
+    done:dagNodes, running:[], activeEdges:[], phaseClass:'done'
+  },
+];
+
+function applySimStep(step){
+  // reset phases
+  for(let i=0;i<4;i++){
+    const ph = document.getElementById('ph'+i);
+    ph.className = 'e-phase';
+    document.getElementById('ph'+i+'s').textContent = 'aguardando';
+  }
+  // apply phases up to current
+  for(let i=0;i<=step.phase;i++){
+    const ph = document.getElementById('ph'+i);
+    const phs = document.getElementById('ph'+i+'s');
+    if(i < step.phase){
+      ph.classList.add('done');
+      phs.textContent = '✓ concluído';
+    } else {
+      ph.classList.add(step.phaseClass||'active');
+      phs.textContent = step.status;
+    }
+  }
+  // reset dag
+  dagNodes.forEach(id=>{
+    const el = document.getElementById(id);
+    el.className = 'dag-node idle';
+  });
+  dagEdges.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){ el.className = 'dag-edge'; el.setAttribute('marker-end','url(#arrow)'); }
+  });
+  // apply node states
+  if(step.done) step.done.forEach(id=>document.getElementById(id).className='dag-node done');
+  if(step.running) step.running.forEach(id=>document.getElementById(id).className='dag-node running');
+  if(step.nodes && step.nodeClass) step.nodes.forEach(id=>{
+    if(!step.done||!step.done.includes(id)) document.getElementById(id).className='dag-node '+step.nodeClass;
+  });
+  // active edges
+  if(step.activeEdges) step.activeEdges.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){ el.className='dag-edge active'; el.style.strokeDasharray='5 3'; el.setAttribute('marker-end','url(#arrowActive)'); }
+  });
+  // log
+  const logEl = document.getElementById('simLog');
+  logEl.innerHTML += '<span class="info">'+step.log+'</span>\n';
+  logEl.scrollTop = logEl.scrollHeight;
+  document.getElementById('simPhaseLabel').textContent = step.phaseLabel;
+}
+
+function simStep(){
+  if(simState >= SIM_STEPS.length) return;
+  applySimStep(SIM_STEPS[simState]);
+  simState++;
+  if(simState >= SIM_STEPS.length){
+    document.getElementById('simRun').disabled = true;
+  }
+}
+function simReset(){
+  simState = 0;
+  for(let i=0;i<4;i++){
+    document.getElementById('ph'+i).className='e-phase';
+    document.getElementById('ph'+i+'s').textContent='aguardando';
+  }
+  dagNodes.forEach(id=>document.getElementById(id).className='dag-node idle');
+  dagEdges.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.className='dag-edge'; el.style.strokeDasharray=''; el.setAttribute('marker-end','url(#arrow)'); }
+  });
+  document.getElementById('simLog').innerHTML = '';
+  document.getElementById('simPhaseLabel').textContent = 'Clique em "Executar passo" para iniciar a simulação.';
+  document.getElementById('simRun').disabled = false;
+}
+
+// ── E2E animated steps ─────────────────────────────────────
+let e2eState = 0;
+const E2E_TOTAL = 10;
+function e2eAdvance(){
+  if(e2eState >= E2E_TOTAL) return;
+  // mark previous as done
+  if(e2eState > 0){
+    const prev = document.getElementById('e2e'+(e2eState-1));
+    prev.classList.remove('active');
+    prev.classList.add('done');
+  }
+  // mark current as active
+  const cur = document.getElementById('e2e'+e2eState);
+  cur.classList.add('active');
+  cur.scrollIntoView({behavior:'smooth',block:'nearest'});
+  e2eState++;
+  document.getElementById('e2eLabel').textContent = 'Passo '+e2eState+' de '+E2E_TOTAL;
+  if(e2eState >= E2E_TOTAL){
+    // finish last
+    setTimeout(()=>{
+      document.getElementById('e2e'+(E2E_TOTAL-1)).classList.remove('active');
+      document.getElementById('e2e'+(E2E_TOTAL-1)).classList.add('done');
+    },600);
+    document.getElementById('e2eNext').disabled = true;
+    document.getElementById('e2eLabel').textContent = '✓ Fluxo completo';
+  }
+}
+function e2eReset(){
+  e2eState = 0;
+  for(let i=0;i<E2E_TOTAL;i++){
+    const el = document.getElementById('e2e'+i);
+    el.classList.remove('active','done');
+  }
+  document.getElementById('e2eNext').disabled = false;
+  document.getElementById('e2eLabel').textContent = 'Passo 0 de '+E2E_TOTAL;
+}
+</script>
+</body>
+</html>

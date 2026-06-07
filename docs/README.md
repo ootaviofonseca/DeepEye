@@ -10,9 +10,13 @@ This directory collects architecture notes, operational guidance, UI references,
 - [Release process](release_process.md)
 - [Maintainer guide](maintainer_guide.md)
 - [Dependency management](dependency_management.md)
-- [Agent module](agent_module.md)
-- [Workflow node system](workflow_node_system.md)
-- [Sandbox system](sandbox_system.md)
+
+## Architecture
+
+- [**System architecture** (comprehensive)](architecture.md) — four-layer design, node protocol, agent topology, workflow engine phases, sandbox, event system, end-to-end data flow, extension guide
+- [Agent module (detail)](agent_module.md) — agent call chain, callbacks, extension examples
+- [Workflow node system (detail)](workflow_node_system.md) — node registration, BaseNode contract, extension examples
+- [Sandbox system (detail)](sandbox_system.md) — Docker sandbox lifecycle, cleanup, extension
 - [Panel system](panel_system.md)
 
 ## Architecture RFCs

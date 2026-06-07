@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DeepEye — Engenharia de Produção</title>
+<style>
+:root{
+  --bg:#090b12;--bg2:#0e1120;--sur:#141828;--sur2:#1b2035;
+  --bdr:#252a40;--bdr2:#2f3650;
+  --tx:#dde4f0;--muted:#7a869e;--dim:#404a60;
+  --p:#7c6fff;--p2:#5a50e0;
+  --g:#00d0a0;--g2:#00a880;
+  --y:#ffc940;--r:#ff5f5f;--b:#4db8ff;
+  --r8:8px;--r5:5px;
+  --mono:'Cascadia Code','Fira Code','JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,sans-serif;font-size:14.5px;line-height:1.7;display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+
+/* ── SIDEBAR ── */
+#sb{background:var(--sur);border-right:1px solid var(--bdr);height:100vh;position:sticky;top:0;overflow-y:auto;display:flex;flex-direction:column;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent}
+.sb-logo{padding:20px 18px 14px;font-size:1.05rem;font-weight:800;color:var(--p);border-bottom:1px solid var(--bdr);letter-spacing:.02em;flex-shrink:0}
+.sb-logo em{color:var(--tx);font-style:normal;font-weight:300}
+.sb-sect{padding:16px 18px 5px;font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--dim)}
+.sb-a{display:block;padding:5px 18px;color:var(--muted);text-decoration:none;font-size:.8rem;border-left:2px solid transparent;transition:all .13s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-a:hover,.sb-a.on{color:var(--tx);border-left-color:var(--p);background:rgba(124,111,255,.08)}
+
+/* ── MAIN ── */
+main{min-width:0;padding:44px 52px 120px;max-width:1060px}
+section{margin-bottom:88px;scroll-margin-top:20px}
+h1{font-size:2.2rem;font-weight:900;margin-bottom:6px}
+h2{font-size:1.45rem;font-weight:800;margin:0 0 20px;padding-bottom:10px;border-bottom:1px solid var(--bdr)}
+h3{font-size:.95rem;font-weight:700;color:var(--b);margin:22px 0 9px}
+h4{font-size:.83rem;font-weight:700;color:var(--y);margin:16px 0 6px}
+p{color:var(--muted);margin-bottom:10px}
+strong{color:var(--tx)}
+a{color:var(--p);text-decoration:none}
+a:hover{text-decoration:underline}
+hr{border:none;border-top:1px solid var(--bdr);margin:56px 0}
+
+/* ── CODE ── */
+code{font-family:var(--mono);background:rgba(124,111,255,.14);color:#b8b0ff;padding:1px 6px;border-radius:3px;font-size:.8em}
+pre{background:#080a10;border:1px solid var(--bdr);border-radius:var(--r8);padding:18px 20px;font-family:var(--mono);font-size:.79rem;line-height:1.65;overflow-x:auto;margin:12px 0;color:#c8d0e0;tab-size:4;position:relative}
+pre .kw{color:#ff79c6}
+pre .cls{color:#bd93f9}
+pre .fn{color:#80bfff}
+pre .str{color:#8be9b0}
+pre .cm{color:#5a6480;font-style:italic}
+pre .dec{color:#ffb86c}
+pre .num{color:#f1fa8c}
+.pre-label{position:absolute;top:10px;right:14px;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);background:#080a10;padding:2px 6px;border-radius:3px;border:1px solid var(--bdr)}
+
+/* ── CALLOUT ── */
+.note{background:rgba(124,111,255,.08);border-left:3px solid var(--p);border-radius:0 var(--r8) var(--r8) 0;padding:11px 15px;margin:14px 0;font-size:.83rem;color:var(--muted)}
+.note strong{color:#a09aff}
+.note.g{background:rgba(0,208,160,.07);border-left-color:var(--g)}
+.note.g strong{color:var(--g)}
+.note.y{background:rgba(255,201,64,.07);border-left-color:var(--y)}
+.note.y strong{color:var(--y)}
+.note.r{background:rgba(255,95,95,.07);border-left-color:var(--r)}
+.note.r strong{color:var(--r)}
+
+/* ── TABLES ── */
+.t{width:100%;border-collapse:collapse;font-size:.8rem;margin:12px 0}
+.t th{background:var(--sur2);color:var(--p);font-weight:700;text-align:left;padding:9px 13px;border-bottom:2px solid var(--bdr)}
+.t td{padding:8px 13px;border-bottom:1px solid var(--bdr);color:var(--muted);vertical-align:top}
+.t tr:hover td{background:rgba(255,255,255,.015)}
+.t code{font-size:.76em}
+.t strong{color:var(--tx);font-weight:600}
+
+/* ── BADGES ── */
+.tag{display:inline-block;padding:1px 7px;border-radius:3px;font-size:.68rem;font-weight:700;vertical-align:middle}
+.tag-p{background:rgba(124,111,255,.18);color:#a09aff}
+.tag-g{background:rgba(0,208,160,.14);color:var(--g)}
+.tag-y{background:rgba(255,201,64,.14);color:var(--y)}
+.tag-r{background:rgba(255,95,95,.14);color:var(--r)}
+.tag-b{background:rgba(77,184,255,.14);color:var(--b)}
+
+/* ── FOLDER TREE ── */
+.tree{background:#080a10;border:1px solid var(--bdr);border-radius:var(--r8);padding:18px 20px;font-family:var(--mono);font-size:.8rem;line-height:2;overflow-x:auto}
+.tree .dir{color:#80bfff;font-weight:700}
+.tree .file{color:#c8d0e0}
+.tree .cm{color:#5a6480;font-style:italic}
+.tree .hi{color:var(--y);font-weight:700}
+.tree .new{color:var(--g)}
+
+/* ── FLOW PIPELINE ── */
+.pipeline{display:flex;align-items:stretch;gap:0;margin:18px 0;overflow-x:auto;padding-bottom:4px}
+.pipe-step{background:var(--sur);border:1px solid var(--bdr);border-radius:0;padding:14px 18px;flex:1;min-width:120px;text-align:center;transition:all .2s;cursor:pointer;position:relative}
+.pipe-step:first-child{border-radius:var(--r8) 0 0 var(--r8)}
+.pipe-step:last-child{border-radius:0 var(--r8) var(--r8) 0}
+.pipe-step:hover,.pipe-step.sel{border-color:var(--p);background:rgba(124,111,255,.1);z-index:1}
+.pipe-step .ps-n{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin-bottom:3px}
+.pipe-step .ps-t{font-size:.85rem;font-weight:700;color:var(--tx)}
+.pipe-step .ps-s{font-size:.72rem;color:var(--muted);margin-top:2px}
+.pipe-arrow{color:var(--dim);display:flex;align-items:center;font-size:.9rem;flex-shrink:0;padding:0 2px}
+.pipe-detail{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r8);padding:16px;margin-top:8px;font-size:.82rem;color:var(--muted);min-height:56px}
+
+/* ── CARD GRID ── */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;margin:14px 0}
+.card{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r8);padding:16px;transition:border-color .18s,transform .15s}
+.card:hover{border-color:var(--p);transform:translateY(-2px)}
+.card-h{font-weight:700;font-size:.87rem;margin-bottom:4px}
+.card-p{font-size:.78rem;color:var(--muted)}
+.card-f{font-family:var(--mono);font-size:.69rem;color:var(--p);margin-top:6px;opacity:.7}
+
+/* ── MODULE ACCORDION ── */
+.acc{margin:8px 0}
+.acc-hd{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r5);padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:.85rem;transition:border-color .15s,background .15s;user-select:none}
+.acc-hd:hover{border-color:var(--p)}
+.acc-hd .acc-icon{color:var(--p);font-family:var(--mono);font-size:.85rem;flex-shrink:0;transition:transform .2s}
+.acc-hd.open{border-color:var(--p);background:rgba(124,111,255,.07)}
+.acc-hd.open .acc-icon{transform:rotate(90deg)}
+.acc-bd{display:none;background:#080a10;border:1px solid var(--bdr);border-top:none;border-radius:0 0 var(--r5) var(--r5);padding:16px}
+.acc-bd.show{display:block}
+
+/* ── DATA FLOW DIAGRAM ── */
+.dflow{display:flex;flex-direction:column;gap:0;margin:16px 0}
+.df-row{display:grid;grid-template-columns:130px 1fr;align-items:start;gap:0;margin-bottom:0}
+.df-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);padding:14px 14px 14px 0;text-align:right;white-space:nowrap;line-height:1.3}
+.df-body{border-left:2px solid var(--bdr);padding:10px 0 10px 18px;position:relative}
+.df-body::before{content:'';position:absolute;left:-5px;top:18px;width:8px;height:8px;border-radius:50%;background:var(--p);border:2px solid var(--bg)}
+.df-item{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r5);padding:10px 14px;margin-bottom:6px;font-size:.8rem}
+.df-item .df-title{font-weight:700;color:var(--tx);margin-bottom:2px}
+.df-item .df-desc{color:var(--muted);font-size:.77rem}
+.df-item code{font-size:.74em}
+.df-row:last-child .df-body{border-left-color:transparent}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--bdr);margin-bottom:16px}
+.tab-btn{padding:8px 18px;font-size:.8rem;font-weight:600;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;margin-bottom:-1px}
+.tab-btn:hover{color:var(--tx)}
+.tab-btn.on{color:var(--p);border-bottom-color:var(--p)}
+.tab-pane{display:none}
+.tab-pane.on{display:block}
+
+/* ── STAT ROW ── */
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.stat{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r8);padding:12px 18px;text-align:center;flex:1;min-width:100px}
+.stat .sv{font-size:1.7rem;font-weight:900;color:var(--p)}
+.stat .sl{font-size:.68rem;color:var(--muted);margin-top:1px}
+
+/* ── INLINE FILE ── */
+.fpath{font-family:var(--mono);font-size:.75rem;color:var(--p);background:rgba(124,111,255,.1);padding:2px 7px;border-radius:3px;display:inline-block}
+
+@media(max-width:820px){
+  body{grid-template-columns:1fr}
+  #sb{display:none}
+  main{padding:24px 18px 80px}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sb">
+  <div class="sb-logo">🔬 Deep<em>Eye</em> <small style="font-size:.6em;color:var(--dim);font-weight:400">prod engineering</small></div>
+
+  <div class="sb-sect">Visão Geral</div>
+  <a class="sb-a" href="#overview">Intro & Stats</a>
+  <a class="sb-a" href="#repo">Estrutura do Repositório</a>
+
+  <div class="sb-sect">Pacote Core</div>
+  <a class="sb-a" href="#core-agents">Agentes — ReAct & LangGraph</a>
+  <a class="sb-a" href="#core-engine">Workflow Engine</a>
+  <a class="sb-a" href="#core-nodes-proto">Protocolo de Nó</a>
+
+  <div class="sb-sect">Pacote Backend</div>
+  <a class="sb-a" href="#be-main">FastAPI app/main.py</a>
+  <a class="sb-a" href="#be-task">Celery Task</a>
+  <a class="sb-a" href="#be-callbacks">Callbacks & SSE</a>
+  <a class="sb-a" href="#be-nodes">Nós de Workflow</a>
+  <a class="sb-a" href="#be-sandbox">Sandbox Docker</a>
+  <a class="sb-a" href="#be-api">API Routes</a>
+  <a class="sb-a" href="#be-models">ORM & Repositórios</a>
+
+  <div class="sb-sect">Frontend</div>
+  <a class="sb-a" href="#fe-structure">Estrutura React</a>
+  <a class="sb-a" href="#fe-stores">Zustand Stores</a>
+  <a class="sb-a" href="#fe-sse">SSE & Streaming</a>
+
+  <div class="sb-sect">Infraestrutura</div>
+  <a class="sb-a" href="#infra-docker">Docker Compose</a>
+  <a class="sb-a" href="#infra-flow">Fluxo de Produção</a>
+  <a class="sb-a" href="#infra-config">Configuração</a>
+</nav>
+
+<!-- MAIN -->
+<main>
+
+<!-- ═══ OVERVIEW ═══ -->
+<section id="overview">
+  <div style="margin-bottom:10px">
+    <span class="tag tag-p">SIGMOD Demo 2026</span>
+    <span class="tag tag-g" style="margin-left:6px">Python 3.12</span>
+    <span class="tag tag-b" style="margin-left:6px">TypeScript 6</span>
+  </div>
+  <h1>Engenharia de Produção</h1>
+  <p>Este documento explica <strong>como o código realmente funciona</strong> — cada pasta, cada módulo, cada decisão de design. Foco em engenharia, não em marketing.</p>
+
+  <div class="stats">
+    <div class="stat"><div class="sv">3</div><div class="sl">Pacotes monorepo</div></div>
+    <div class="stat"><div class="sv">8</div><div class="sl">Tipos de nó</div></div>
+    <div class="stat"><div class="sv">16</div><div class="sl">ORM models</div></div>
+    <div class="stat"><div class="sv">7</div><div class="sl">Serviços Docker</div></div>
+    <div class="stat"><div class="sv">71</div><div class="sl">Testes backend</div></div>
+    <div class="stat"><div class="sv">371</div><div class="sl">Arquivos Python</div></div>
+  </div>
+
+  <div class="note g">
+    <strong>Stack:</strong> FastAPI + Celery + LangGraph + PostgreSQL + Redis + MinIO + Docker SDK — Python no backend, React 19 + Vite + Zustand + ReactFlow no frontend.
+  </div>
+</section>
+
+<!-- ═══ REPO STRUCTURE ═══ -->
+<section id="repo">
+  <h2>Estrutura do Repositório</h2>
+  <p>Monorepo gerenciado com <strong>uv</strong> (Python) e <strong>npm workspaces</strong> (Node). Dois pacotes Python compartilham dependências via <code>uv.lock</code>.</p>
+
+  <div class="tree">
+<span class="dir">DeepEye/</span>
+├── <span class="dir">packages/</span>
+│   ├── <span class="dir hi">core/</span>           <span class="cm"># biblioteca compartilhada — engine, agentes, modelos</span>
+│   │   └── <span class="dir">deepeye/</span>
+│   │       ├── <span class="dir">agents/</span>     <span class="cm"># BaseAgent, ReActAgent, SupervisorAgent, WorkflowAgent</span>
+│   │       ├── <span class="dir">workflows/</span>  <span class="cm"># engine.py, models.py, registry.py, validation.py, runtime.py</span>
+│   │       ├── <span class="dir">graph/</span>      <span class="cm"># AgentState (LangGraph TypedDict)</span>
+│   │       ├── <span class="dir">tools/</span>      <span class="cm"># ferramentas base e de planejamento</span>
+│   │       └── <span class="dir">utils/</span>      <span class="cm"># logger, db_utils</span>
+│   │
+│   ├── <span class="dir hi">backend/</span>        <span class="cm"># FastAPI + Celery + todo o runtime</span>
+│   │   └── <span class="dir">app/</span>
+│   │       ├── <span class="file">main.py</span>       <span class="cm"># create_app(), lifespan(), CORS, middleware</span>
+│   │       ├── <span class="file">worker.py</span>     <span class="cm"># celery -A app.core.celery_app worker</span>
+│   │       ├── <span class="dir">api/</span>          <span class="cm"># routers: auth/, public/, v1/</span>
+│   │       ├── <span class="dir">agent/</span>        <span class="cm"># prompts do supervisor</span>
+│   │       ├── <span class="dir">core/</span>         <span class="cm"># config, celery_app, middleware, auth, warmup</span>
+│   │       ├── <span class="dir">datasource/</span>   <span class="cm"># conexão DB, parsing de arquivos, preview</span>
+│   │       ├── <span class="dir">db/</span>           <span class="cm"># sessão SQLAlchemy, migrations Alembic</span>
+│   │       ├── <span class="dir">deploy/</span>       <span class="cm"># deploy de dashboards e vídeos</span>
+│   │       ├── <span class="dir">infra/</span>        <span class="cm"># RedisEventBus, MinIO, docker control</span>
+│   │       ├── <span class="dir">models/</span>       <span class="cm"># 16 ORM models SQLAlchemy</span>
+│   │       ├── <span class="dir hi">node/</span>         <span class="cm"># implementações concretas de cada nó</span>
+│   │       │   ├── core/base.py  <span class="cm"># BaseNode ABC</span>
+│   │       │   ├── data/         <span class="cm"># datasource_read, sql_execute</span>
+│   │       │   ├── rows/         <span class="cm"># operações sobre linhas</span>
+│   │       │   ├── llm/          <span class="cm"># llm.answer</span>
+│   │       │   ├── code/         <span class="cm"># python.code</span>
+│   │       │   ├── dashboard/    <span class="cm"># NL2Dashboard (50+ arquivos)</span>
+│   │       │   ├── video/        <span class="cm"># video.generator (90+ arquivos)</span>
+│   │       │   └── report/       <span class="cm"># report.generate</span>
+│   │       ├── <span class="dir">repositories/</span> <span class="cm"># padrão Repository — 16 classes CRUD</span>
+│   │       ├── <span class="dir">sandbox/</span>      <span class="cm"># DockerSandbox, SandboxManager, ActivityTracker</span>
+│   │       ├── <span class="dir">schemas/</span>      <span class="cm"># Pydantic request/response (AgentInput, AgentEvent…)</span>
+│   │       ├── <span class="dir">tasks/</span>        <span class="cm"># agent_tasks.py, callbacks.py, workflow tasks</span>
+│   │       ├── <span class="dir">tools/</span>        <span class="cm"># workflow_tools (wrappam WorkflowAgent como LangChain tool)</span>
+│   │       └── <span class="dir">workflow/</span>     <span class="cm"># events, lifecycle, services (engine, targets, tracking)</span>
+│   │
+│   ├── <span class="dir hi">frontend/</span>       <span class="cm"># React 19 + TypeScript SPA</span>
+│   │   └── <span class="dir">src/</span>
+│   │       ├── components/   <span class="cm"># 51 componentes .tsx</span>
+│   │       ├── stores/       <span class="cm"># Zustand (chat, auth, workflow, rightPanel…)</span>
+│   │       ├── services/     <span class="cm"># chamadas de API + SSE listener</span>
+│   │       ├── models/       <span class="cm"># TypeScript types</span>
+│   │       └── pages/        <span class="cm"># 8 rotas (Login, Register, WorkflowsNew…)</span>
+│   │
+│   └── <span class="dir">contracts/</span>      <span class="cm"># workflow-artifact.schema.json</span>
+│
+├── <span class="dir">docker/</span>           <span class="cm"># Dockerfiles, nginx.conf, scripts</span>
+├── <span class="dir">docs/</span>             <span class="cm"># documentação (architecture.md, RFCs…)</span>
+├── <span class="file">docker-compose.yml</span>
+├── <span class="file">pyproject.toml</span>    <span class="cm"># uv workspace root</span>
+└── <span class="file">env.example</span>
+  </div>
+</section>
+
+<!-- ═══ CORE — AGENTS ═══ -->
+<section id="core-agents">
+  <h2>Core — Agentes (LangGraph / ReAct)</h2>
+  <p>
+    O motor de agentes fica em <span class="fpath">packages/core/deepeye/agents/</span>.
+    É uma biblioteca Python independente — não importa nada do backend. Pode ser testada isoladamente.
+  </p>
+
+  <h3>Hierarquia de classes</h3>
+  <div class="tree">
+<span class="cls">BaseAgent</span>           <span class="cm"># agents/base.py — interface abstrata</span>
+  <span class="file">__init__(model, tools, system_prompt, checkpointer)</span>
+  <span class="file">_build_graph() → Any            </span><span class="cm"># subclasses implementam</span>
+  <span class="file">ainvoke(input, thread_id, config)</span>
+  <span class="file">astream(input, thread_id, config)</span>
+
+  └── <span class="cls">ReActAgent</span>        <span class="cm"># agents/react_agent.py</span>
+        <span class="file">_bound_model = model.bind_tools(tools)</span>
+        <span class="file">_build_graph()    </span><span class="cm"># StateGraph: agent ⇄ ToolNode</span>
+        <span class="file">_call_model()     </span><span class="cm"># trunca contexto, injeta system_prompt</span>
+        <span class="file">_should_continue()</span><span class="cm"># "continue" se tool_calls, "end" caso contrário</span>
+
+        ├── <span class="cls">SupervisorAgent</span>  <span class="cm"># agents/supervisor.py</span>
+        │     <span class="file">system_prompt injetado dinamicamente por request</span>
+        │     <span class="file">_extract_workflow_final_answer() </span><span class="cm"># short-circuit loop</span>
+        │
+        └── (SQLAgent, CodeAgent — disponíveis, não na chain principal)
+
+<span class="cls">AgentFactory</span>         <span class="cm"># agents/factory.py</span>
+  <span class="file">create_supervisor(tools, system_prompt_template)</span>
+  </div>
+
+  <h3>Como o LangGraph executa o ReAct loop</h3>
+  <pre><span class="pre-label">react_agent.py</span><span class="kw">def</span> <span class="fn">_build_graph</span>(self):
+    workflow = <span class="cls">StateGraph</span>(<span class="cls">AgentState</span>)          <span class="cm"># estado: messages: Annotated[list, add_messages]</span>
+    workflow.add_node(<span class="str">"agent"</span>, self._call_model)   <span class="cm"># node 1: chama o LLM</span>
+    workflow.add_node(<span class="str">"tools"</span>, <span class="cls">ToolNode</span>(self.tools)) <span class="cm"># node 2: executa tool calls</span>
+    workflow.set_entry_point(<span class="str">"agent"</span>)
+    workflow.add_conditional_edges(
+        <span class="str">"agent"</span>, self._should_continue,
+        {<span class="str">"continue"</span>: <span class="str">"tools"</span>, <span class="str">"end"</span>: END}         <span class="cm"># há tool_calls? → tools; senão → fim</span>
+    )
+    workflow.add_edge(<span class="str">"tools"</span>, <span class="str">"agent"</span>)            <span class="cm"># resultado da tool → de volta ao LLM</span>
+    <span class="kw">return</span> workflow.compile(checkpointer=self.checkpointer)</pre>
+
+  <div class="note">
+    <strong>max_context_messages=20:</strong> se o histórico exceder 20 mensagens, as mais antigas são descartadas antes de chamar o modelo — previne <code>context_length_exceeded</code>. Além disso, a lógica remove AIMessages com tool_calls sem ToolMessages correspondentes para evitar erro 400 na API OpenAI.
+  </div>
+
+  <h3>SupervisorAgent — injeção dinâmica de contexto</h3>
+  <pre><span class="pre-label">supervisor.py</span><span class="kw">async def</span> <span class="fn">_call_model</span>(self, state, config):
+    <span class="cm"># 1. Verifica se WorkflowAgent já produziu final_answer → short-circuit</span>
+    final_answer = self._extract_workflow_final_answer(list(state[<span class="str">"messages"</span>]))
+    <span class="kw">if</span> final_answer:
+        <span class="kw">return</span> {<span class="str">"messages"</span>: [<span class="cls">AIMessage</span>(content=final_answer)]}
+
+    <span class="cm"># 2. Lê contexto de datasources do request config (injetado em agent_tasks.py)</span>
+    datasources_context = config[<span class="str">"configurable"</span>].get(<span class="str">"datasources_context"</span>, <span class="str">"No data sources."</span>)
+    system_msg = <span class="cls">SystemMessage</span>(content=prompt_template.format(
+        datasources_context=datasources_context
+    ))
+    <span class="kw">return</span> {<span class="str">"messages"</span>: [<span class="kw">await</span> self._bound_model.ainvoke([system_msg] + list(messages))]}
+</pre>
+
+  <div class="note y">
+    <strong>Checkpointer:</strong> o estado do agente é persistido no PostgreSQL via <code>AsyncPostgresSaver</code> usando <code>thread_id=session_id</code>. Isso permite que o agente continue de onde parou entre requests — memória de longo prazo por sessão.
+  </div>
+</section>
+
+<!-- ═══ CORE — ENGINE ═══ -->
+<section id="core-engine">
+  <h2>Core — Workflow Engine</h2>
+  <p>Arquivo: <span class="fpath">packages/core/deepeye/workflows/engine.py</span></p>
+
+  <h3>Modelos de dados em runtime</h3>
+  <pre><span class="pre-label">runtime.py</span><span class="kw">class</span> <span class="cls">NodeRun</span>(<span class="cls">BaseModel</span>):
+    node_id: <span class="cls">str</span>
+    inputs:  dict[str, Any]  <span class="cm"># resolvidos das arestas upstream</span>
+    outputs: dict[str, Any]  <span class="cm"># retornados pelo handler</span>
+    status:  Literal[<span class="str">"pending","running","success","failed","skipped"</span>]
+    error:   str | None
+    started_at, finished_at: datetime | None
+
+<span class="kw">class</span> <span class="cls">ExecutionContext</span>(<span class="cls">BaseModel</span>):
+    workflow_id: str
+    runs: dict[str, <span class="cls">NodeRun</span>]  <span class="cm"># node_id → NodeRun</span>
+    status: Literal[<span class="str">"running","success","failed"</span>]
+    started_at, finished_at: datetime | None</pre>
+
+  <h3>Fases do Engine.run()</h3>
+  <div class="pipeline" id="epipe">
+    <div class="pipe-step sel" data-i="0" onclick="epick(this)">
+      <div class="ps-n">Fase 1</div><div class="ps-t">Compiler</div><div class="ps-s">JSON → objetos</div>
+    </div>
+    <div class="pipe-arrow">▸</div>
+    <div class="pipe-step" data-i="1" onclick="epick(this)">
+      <div class="ps-n">Fase 2</div><div class="ps-t">Validator</div><div class="ps-s">checagens estáticas</div>
+    </div>
+    <div class="pipe-arrow">▸</div>
+    <div class="pipe-step" data-i="2" onclick="epick(this)">
+      <div class="ps-n">Fase 3</div><div class="ps-t">Optimizer</div><div class="ps-s">Kahn's sort</div>
+    </div>
+    <div class="pipe-arrow">▸</div>
+    <div class="pipe-step" data-i="3" onclick="epick(this)">
+      <div class="ps-n">Fase 4</div><div class="ps-t">Executor</div><div class="ps-s">run + contexto</div>
+    </div>
+  </div>
+  <div class="pipe-detail" id="epd">
+    <strong>Compiler</strong> — o WorkflowAgent gera JSON com <code>root.nodes</code> e <code>root.edges</code>. O backend parseia via <code>Workflow.model_validate(json)</code> usando Pydantic, resolvendo referências de variáveis entre portas (ex: output de <code>sql.execute</code> → input de <code>dashboard.generate</code>).
+  </div>
+
+  <h3>Resolução de inputs entre nós</h3>
+  <pre><span class="pre-label">engine.py — _resolve_inputs()</span><span class="kw">for</span> edge <span class="kw">in</span> incoming:                          <span class="cm"># arestas que chegam no nó</span>
+    value = context.runs[edge.source.node_id].outputs[edge.source.port_id]
+    <span class="kw">if</span> edge.condition:                           <span class="cm"># aresta condicional?</span>
+        <span class="kw">if not</span> conditions.require(edge.condition).evaluate(value, context):
+            <span class="kw">continue</span>
+    <span class="kw">if</span> edge.transform:                           <span class="cm"># transformação de valor?</span>
+        value = transforms.require(edge.transform).apply(value, context)
+    <span class="kw">if</span> target_port.multiple:                      <span class="cm"># porta aceita vários upstream?</span>
+        inputs.setdefault(port_id, []).append(value)
+    <span class="kw">else</span>:
+        inputs[port_id] = value</pre>
+
+  <h3>Topological sort — Kahn's Algorithm</h3>
+  <pre><span class="pre-label">engine.py — _topological_sort()</span>indegree = {node_id: <span class="num">0</span> <span class="kw">for</span> node_id <span class="kw">in</span> graph.nodes}
+<span class="kw">for</span> edge <span class="kw">in</span> graph.edges.values():
+    indegree[edge.target.node_id] += <span class="num">1</span>
+
+queue = [node_id <span class="kw">for</span> node_id, deg <span class="kw">in</span> indegree.items() <span class="kw">if</span> deg == <span class="num">0</span>]
+order: list[str] = []
+<span class="kw">while</span> queue:
+    node_id = queue.pop(<span class="num">0</span>)   <span class="cm"># BFS → ordem respeita dependências</span>
+    order.append(node_id)
+    <span class="kw">for</span> neighbor <span class="kw">in</span> adjacency[node_id]:
+        indegree[neighbor] -= <span class="num">1</span>
+        <span class="kw">if</span> indegree[neighbor] == <span class="num">0</span>:
+            queue.append(neighbor)  <span class="cm"># nós sem dependência pendente → mesma "layer"</span></pre>
+
+  <div class="note">
+    <strong>Paralelismo:</strong> nós que chegam ao <code>indegree=0</code> ao mesmo tempo pertencem à mesma camada de execução e podem ser despachados em paralelo pelo Celery. O engine atual executa em sequência topológica — o paralelismo real é delegado ao runtime Celery/Redis.
+  </div>
+</section>
+
+<!-- ═══ CORE — NODE PROTOCOL ═══ -->
+<section id="core-nodes-proto">
+  <h2>Core — Protocolo de Nó</h2>
+
+  <h3>NodeSpec — fonte única de verdade</h3>
+  <pre><span class="pre-label">registry.py</span><span class="kw">class</span> <span class="cls">NodeSpec</span>(<span class="cls">BaseModel</span>):
+    type:         str           <span class="cm"># ex: "sql.execute"</span>
+    description:  str | None    <span class="cm"># texto para o LLM selecionar o nó</span>
+    params_schema: dict | None  <span class="cm"># JSON Schema dos params fixos</span>
+    inputs:  dict[str, <span class="cls">Port</span>]   <span class="cm"># portas de entrada</span>
+    outputs: dict[str, <span class="cls">Port</span>]   <span class="cm"># portas de saída</span>
+    version: str = <span class="str">"1.0"</span>
+
+<span class="kw">class</span> <span class="cls">Port</span>(<span class="cls">BaseModel</span>):
+    schema_:  str | dict | None  <span class="cm"># tipo esperado</span>
+    required: bool = <span class="kw">False</span>
+    multiple: bool = <span class="kw">False</span>       <span class="cm"># aceita múltiplas arestas incoming</span>
+    default:  Any | None = <span class="kw">None</span>
+    description: str | None = <span class="kw">None</span></pre>
+
+  <p>O <code>NodeSpec</code> é registrado via <code>NodeRegistry</code> e usado por:</p>
+  <table class="t">
+    <thead><tr><th>Consumidor</th><th>Como usa o NodeSpec</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Validator</strong></td><td>Checa tipo de nó, portas e schemas antes da execução</td></tr>
+      <tr><td><strong>Executor</strong></td><td>Resolve inputs via <code>spec.inputs</code>; valida que o handler não retornou campos não declarados</td></tr>
+      <tr><td><strong>Planner Prompt</strong></td><td>Catálogo de nós injetado no prompt do WorkflowAgent via <code>/api/v1/workflow-nodes</code></td></tr>
+      <tr><td><strong>Frontend Editor</strong></td><td>Renderiza as portas disponíveis para wiring no canvas ReactFlow</td></tr>
+    </tbody>
+  </table>
+
+  <h3>BaseNode — contrato de implementação</h3>
+  <pre><span class="pre-label">node/core/base.py</span><span class="kw">class</span> <span class="cls">BaseNode</span>(<span class="cls">ABC</span>):
+    node_type: str                            <span class="cm"># ex: "data.export_csv"</span>
+
+    <span class="kw">@classmethod</span>
+    <span class="kw">@abstractmethod</span>
+    <span class="kw">def</span> <span class="fn">spec</span>(cls) -> <span class="cls">NodeSpec</span>: ...            <span class="cm"># obrigatório</span>
+
+    <span class="kw">@classmethod</span>
+    <span class="kw">def</span> <span class="fn">build_handler</span>(cls, db, user_id) -> <span class="cls">NodeHandler</span> | None:
+        <span class="kw">return</span> None                           <span class="cm"># opcional; None = nó sem execução runtime</span></pre>
+
+  <h3>Auto-discovery de nós</h3>
+  <pre><span class="pre-label">node/__init__.py</span>NODE_MODULES: tuple[str, ...] = (
+    <span class="str">"app.node.data.datasource_read"</span>,
+    <span class="str">"app.node.data.sql_execute"</span>,
+    <span class="str">"app.node.rows.basic"</span>,
+    <span class="str">"app.node.llm.answer"</span>,
+    <span class="str">"app.node.code.python_code"</span>,
+    <span class="str">"app.node.dashboard.node"</span>,
+    <span class="str">"app.node.video.node"</span>,
+    <span class="str">"app.node.report.node"</span>,
+)
+
+<span class="kw">def</span> <span class="fn">register_node_specs</span>(registry: <span class="cls">NodeRegistry</span>):
+    <span class="kw">for</span> module_name <span class="kw">in</span> NODE_MODULES:
+        importlib.import_module(module_name)       <span class="cm"># importa → BaseNode.__subclasses__() cresce</span>
+    <span class="kw">for</span> node_cls <span class="kw">in</span> BaseNode.__subclasses__():
+        registry.register(node_cls.spec())        <span class="cm"># auto-registro</span></pre>
+
+  <div class="note">
+    <strong>Para adicionar um nó:</strong> crie a classe em <code>app/node/&lt;domínio&gt;/</code>, adicione o path em <code>NODE_MODULES</code>. O nó aparece automaticamente em <code>/api/v1/workflow-nodes</code> e fica disponível ao Planner.
+  </div>
+</section>
+
+<!-- ═══ BACKEND — MAIN ═══ -->
+<section id="be-main">
+  <h2>Backend — FastAPI app/main.py</h2>
+
+  <h3>Lifespan (startup / shutdown)</h3>
+  <pre><span class="pre-label">app/main.py</span><span class="kw">@asynccontextmanager</span>
+<span class="kw">async def</span> <span class="fn">lifespan</span>(_: <span class="cls">FastAPI</span>):
+    run_startup_warmup(component=<span class="str">"api"</span>)      <span class="cm"># pré-aquece conexões (DB, Redis)</span>
+    <span class="kw">await</span> initialize_checkpointer()           <span class="cm"># cria tabelas do LangGraph checkpointer</span>
+    start_sandbox_cleanup()                   <span class="cm"># inicia task de limpeza de sandboxes ociosos</span>
+    <span class="kw">yield</span>                                     <span class="cm"># servidor rodando</span>
+    <span class="kw">await</span> stop_sandbox_cleanup()              <span class="cm"># destroi todos os sandboxes ao parar</span></pre>
+
+  <h3>Middleware — ordem importa</h3>
+  <pre><span class="pre-label">app/main.py — create_app()</span><span class="cm"># No FastAPI, último middleware adicionado fica na camada MAIS EXTERNA.</span>
+<span class="cm"># Queremos: CORS (externo) → auth_middleware (interno) → handlers</span>
+app.middleware(<span class="str">"http"</span>)(auth_middleware)   <span class="cm"># adicionado 1º → mais interno</span>
+app.add_middleware(CORSMiddleware, ...)    <span class="cm"># adicionado 2º → envolve o auth</span></pre>
+
+  <h3>Routers registrados</h3>
+  <table class="t">
+    <thead><tr><th>Router</th><th>Prefixo</th><th>Endpoints principais</th></tr></thead>
+    <tbody>
+      <tr><td><code>auth_router</code></td><td><code>/api/auth</code></td><td>login, register, verify-email, forgot-password, reset-password</td></tr>
+      <tr><td><code>public_router</code></td><td><code>/api/public</code></td><td>health check (sem auth)</td></tr>
+      <tr><td><code>v1_router</code></td><td><code>/api/v1</code></td><td>chat, sessions, datasources, workflows, video, system, workflow-nodes</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ BACKEND — CELERY TASK ═══ -->
+<section id="be-task">
+  <h2>Backend — Celery Task (agent_tasks.py)</h2>
+  <p>Arquivo: <span class="fpath">packages/backend/app/tasks/agent_tasks.py</span></p>
+  <p>É aqui que tudo começa. Quando o usuário envia uma mensagem, a API enfileira esta task no Redis e retorna imediatamente. O worker Celery pega e executa de forma assíncrona.</p>
+
+  <div class="dflow">
+    <div class="df-row">
+      <div class="df-label">1. Entrada</div>
+      <div class="df-body">
+        <div class="df-item">
+          <div class="df-title">AgentInput desempacotado</div>
+          <div class="df-desc"><code>AgentInput(session_id, user_input, datasource_ids)</code> — Pydantic model. A task Celery recebe como dict e revalida.</div>
+        </div>
+      </div>
+    </div>
+    <div class="df-row">
+      <div class="df-label">2. Persistência</div>
+      <div class="df-body">
+        <div class="df-item">
+          <div class="df-title">persist_message() + create_chat_turn_record()</div>
+          <div class="df-desc">Salva a mensagem do usuário no PostgreSQL e cria o registro <code>ChatTurn</code> com status inicial.</div>
+        </div>
+      </div>
+    </div>
+    <div class="df-row">
+      <div class="df-label">3. Sandbox</div>
+      <div class="df-body">
+        <div class="df-item">
+          <div class="df-title">sandbox_manager.get_or_create_sandbox(session_id)</div>
+          <div class="df-desc">Cria ou reutiliza o container Docker da sessão. Depois, <code>sync_datasource_files()</code> copia arquivos de datasource para o volume do sandbox.</div>
+        </div>
+      </div>
+    </div>
+    <div class="df-row">
+      <div class="df-label">4. Ferramentas</div>
+      <div class="df-body">
+        <div class="df-item">
+          <div class="df-title">build_datasources_context() + build_workflow_prompt()</div>
+          <div class="df-desc">Constrói o contexto textual dos datasources (metadata, schema) e o prompt do WorkflowAgent com o catálogo de nós disponíveis.</div>
+        </div>
+        <div class="df-item">
+          <div class="df-title">create_design_workflow_tool() + create_summarize_workflow_result_tool()</div>
+          <div class="df-desc">Cria as LangChain tools que o Supervisor pode invocar. Cada tool encapsula o WorkflowAgent com seus callbacks.</div>
+        </div>
+      </div>
+    </div>
+    <div class="df-row">
+      <div class="df-label">5. Execução</div>
+      <div class="df-body">
+        <div class="df-item">
+          <div class="df-title">AsyncPostgresSaver + AgentFactory.create_supervisor()</div>
+          <div class="df-desc">Inicializa o checkpointer para persistência de estado do agente, cria o SupervisorAgent, e invoca <code>supervisor.ainvoke(user_input, thread_id=session_id)</code>.</div>
+        </div>
+      </div>
+    </div>
+    <div class="df-row">
+      <div class="df-label">6. Finalização</div>
+      <div class="df-body">
+        <div class="df-item">
+          <div class="df-title">collector.build() → persist_message() → complete_chat_turn_record()</div>
+          <div class="df-desc">O <code>MessageCollector</code> monta o <code>AssistantMessage</code> com todos os steps/subSteps coletados via callbacks. Salva no banco e marca o turno como concluído.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note r">
+    <strong>Event loop:</strong> Celery é síncrono mas o código de agente é <code>async</code>. A task usa <code>asyncio.new_event_loop()</code> e <code>loop.run_until_complete()</code> para rodar o código assíncrono de forma bloqueante dentro do worker.
+  </div>
+</section>
+
+<!-- ═══ BACKEND — CALLBACKS ═══ -->
+<section id="be-callbacks">
+  <h2>Backend — Callbacks &amp; Streaming SSE</h2>
+  <p>Arquivo: <span class="fpath">packages/backend/app/tasks/callbacks.py</span></p>
+
+  <div class="tabs" id="cb-tabs">
+    <button class="tab-btn on" onclick="tab('cb','agent')">AgentCallback</button>
+    <button class="tab-btn" onclick="tab('cb','collector')">MessageCollector</button>
+    <button class="tab-btn" onclick="tab('cb','persist')">persist_message</button>
+  </div>
+
+  <div class="tab-pane on" id="cb-agent">
+    <p><code>AgentCallback(AsyncCallbackHandler)</code> — intercepta todos os eventos do LangChain e os publica no Redis para SSE.</p>
+    <pre><span class="pre-label">callbacks.py — AgentCallback</span><span class="cm"># on_llm_new_token → publica TOKEN event + collector.add_token()</span>
+<span class="kw">async def</span> <span class="fn">on_llm_new_token</span>(self, token, **kwargs):
+    <span class="kw">await</span> self._publish(<span class="cls">AgentEvent</span>(type=<span class="cls">AgentEventType</span>.TOKEN, content=token))
+    self.collector.add_token(self.source, token)
+
+<span class="cm"># on_tool_start → publica TOOL_START, salva draft do workflow</span>
+<span class="kw">async def</span> <span class="fn">on_tool_start</span>(self, serialized, input_str, **kwargs):
+    name = serialized.get(<span class="str">"name"</span>, <span class="str">"unknown"</span>)
+    <span class="kw">await</span> self._publish(<span class="cls">AgentEvent</span>(type=AgentEventType.TOOL_START, data={<span class="str">"name"</span>: name}))
+    <span class="cm"># se workflow_agent chamou create_workflow → salva draft + publica workflow_event</span>
+    <span class="kw">if</span> self.source == <span class="str">"workflow_agent"</span> <span class="kw">and</span> name <span class="kw">in</span> (<span class="str">"create_workflow"</span>, <span class="str">"update_workflow"</span>):
+        draft = save_workflow_draft(db, session_id=..., definition=workflow)
+        <span class="kw">await</span> self._publish_workflow_event(<span class="str">"create_workflow"</span>, {<span class="str">"workflow"</span>: workflow})</pre>
+
+    <div class="note">
+      <strong>_publish():</strong> detecta se está num event loop diferente do loop original (comum em threads Celery) e usa <code>asyncio.run_coroutine_threadsafe()</code> para publicar com segurança.
+    </div>
+  </div>
+
+  <div class="tab-pane" id="cb-collector">
+    <p><code>MessageCollector</code> monta a estrutura hierárquica de steps para a mensagem final do assistente.</p>
+    <pre><span class="pre-label">callbacks.py — MessageCollector</span><span class="cm"># Estrutura produzida:</span>
+<span class="cls">AssistantMessage</span>(
+    content=<span class="str">"resposta final do Supervisor ou workflow final_answer"</span>,
+    steps=[
+        <span class="cls">ToolStep</span>(name=<span class="str">"workflow_agent"</span>, type=<span class="str">"tool"</span>, status=<span class="str">"completed"</span>,
+            subSteps=[
+                <span class="cls">ToolStep</span>(type=<span class="str">"thought"</span>, thought=<span class="str">"tokens de raciocínio…"</span>),
+                <span class="cls">ToolStep</span>(name=<span class="str">"create_workflow"</span>, type=<span class="str">"tool"</span>, …),
+            ]
+        )
+    ]
+)
+
+<span class="cm"># Prioridade de content final (em ordem decrescente):</span>
+<span class="cm"># 1. summarize_workflow_result output</span>
+<span class="cm"># 2. workflow_agent final_answer (do ToolMessage)</span>
+<span class="cm"># 3. supervisor content livre</span>
+<span class="cm"># 4. fallback_content (em caso de erro parcial)</span></pre>
+  </div>
+
+  <div class="tab-pane" id="cb-persist">
+    <p><code>persist_message()</code> abre uma sessão SQLAlchemy síncrona (Celery é síncrono), persiste a mensagem e fecha a sessão.</p>
+    <pre><span class="pre-label">callbacks.py — persist_message()</span><span class="kw">def</span> <span class="fn">persist_message</span>(session_id, message):
+    db = open_task_session()           <span class="cm"># abre sessão síncrona do SQLAlchemy</span>
+    <span class="kw">try</span>:
+        record = <span class="cls">MessageRepository</span>(db).append(session_id, message)
+        <span class="kw">return</span> record
+    <span class="kw">finally</span>:
+        db.close()                     <span class="cm"># sempre fecha — sem context manager aqui</span></pre>
+  </div>
+</section>
+
+<!-- ═══ BACKEND — NODES ═══ -->
+<section id="be-nodes">
+  <h2>Backend — Nós de Workflow</h2>
+  <p>Pasta: <span class="fpath">packages/backend/app/node/</span></p>
+
+  <div class="acc" id="acc-nodes">
+    <div class="acc-hd" onclick="acc(this)"><span>datasource.read &amp; sql.execute — nós de dados</span><span class="acc-icon">▶</span></div>
+    <div class="acc-bd">
+      <p>Em <span class="fpath">app/node/data/</span>. São <strong>ToolNodes</strong> — execução determinística sem LLM.</p>
+      <p><code>datasource.read</code> conecta ao banco ou lê o arquivo CSV/Excel via <code>app/datasource/</code> e retorna linhas como <code>list[dict]</code>.</p>
+      <p><code>sql.execute</code> recebe uma query SQL (gerada pelo WorkflowAgent no plano), valida, executa contra o datasource identificado por <code>datasource_id</code>, e retorna rows + metadata.</p>
+    </div>
+
+    <div class="acc-hd" onclick="acc(this)"><span>rows.* — operações sobre tabelas</span><span class="acc-icon">▶</span></div>
+    <div class="acc-bd">
+      <p>Em <span class="fpath">app/node/rows/basic.py</span>. Uma única classe com múltiplos <code>node_type</code> registrados: <code>profile</code>, <code>select</code>, <code>filter</code>, <code>sort</code>, <code>aggregate</code>, <code>join</code>. Todos recebem <code>rows: list[dict]</code> e retornam rows transformados.</p>
+    </div>
+
+    <div class="acc-hd" onclick="acc(this)"><span>python.code — sandbox execution</span><span class="acc-icon">▶</span></div>
+    <div class="acc-bd">
+      <p>Em <span class="fpath">app/node/code/python_code.py</span>. <strong>AgentNode</strong>: o handler gera código Python via LLM, depois executa no container sandbox da sessão. O resultado é lido de arquivos no workspace volume. <code>build_handler(db, user_id, sandbox=sandbox)</code> recebe o sandbox injetado.</p>
+    </div>
+
+    <div class="acc-hd" onclick="acc(this)"><span>dashboard.generate — NL2Dashboard</span><span class="acc-icon">▶</span></div>
+    <div class="acc-bd">
+      <p>Em <span class="fpath">app/node/dashboard/</span> — 50+ arquivos. Pipeline em múltiplos estágios:</p>
+      <ol style="margin:8px 0 0 18px;color:var(--muted);font-size:.82rem;line-height:1.8">
+        <li><strong>Design:</strong> LLM define layout e tipos de chart</li>
+        <li><strong>Engineering:</strong> gera HTML/JS do dashboard baseado em template</li>
+        <li><strong>Error Detection:</strong> valida o HTML gerado, corrige erros</li>
+        <li><strong>Deploy:</strong> lança container Docker separado (<code>Dockerfile.dashboard</code>) e retorna URL</li>
+      </ol>
+    </div>
+
+    <div class="acc-hd" onclick="acc(this)"><span>video.generator — Data Video</span><span class="acc-icon">▶</span></div>
+    <div class="acc-bd">
+      <p>Em <span class="fpath">app/node/video/</span> — 90+ arquivos. Usa <strong>Remotion</strong> para renderização de vídeo com componentes TSX animados. Pipeline: config de cenas → geração de narração → animação → render no container <code>Dockerfile.video-preview</code>. Produz arquivo <code>.mp4</code> armazenado no MinIO.</p>
+    </div>
+
+    <div class="acc-hd" onclick="acc(this)"><span>report.generate — relatórios</span><span class="acc-icon">▶</span></div>
+    <div class="acc-bd">
+      <p>Em <span class="fpath">app/node/report/</span>. Gera relatório analítico em HTML/Markdown usando LLM + templates Jinja2. Persistido no MinIO com URL retornada como output. Templates em <span class="fpath">app/node/report/report_module/templates/</span>.</p>
+    </div>
+
+    <div class="acc-hd" onclick="acc(this)"><span>llm.answer — resposta direta</span><span class="acc-icon">▶</span></div>
+    <div class="acc-bd">
+      <p>Em <span class="fpath">app/node/llm/answer.py</span>. Gera resposta em linguagem natural usando o LLM com o contexto das rows/outputs upstream. Útil para perguntas analíticas que não precisam de artefato visual. É um nó explícito no DAG — não uma lógica externa ao workflow.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ BACKEND — SANDBOX ═══ -->
+<section id="be-sandbox">
+  <h2>Backend — Sandbox Docker</h2>
+  <p>Pasta: <span class="fpath">packages/backend/app/sandbox/</span></p>
+
+  <h3>Componentes</h3>
+  <table class="t">
+    <thead><tr><th>Arquivo</th><th>Classe</th><th>Responsabilidade</th></tr></thead>
+    <tbody>
+      <tr><td><code>manager.py</code></td><td><code>SandboxManager</code></td><td>Mapeia <code>session_id → DockerSandbox</code>. Métodos: <code>get_or_create</code>, <code>sync_datasource_files</code>, <code>start_cleanup_task</code>, <code>cleanup_all</code></td></tr>
+      <tr><td><code>docker_sandbox.py</code></td><td><code>DockerSandbox</code></td><td>Ciclo de vida do container: <code>create</code>, <code>exec_command</code>, <code>stop</code>, <code>destroy</code>. Monta volume workspace por sessão.</td></tr>
+      <tr><td><code>activity.py</code></td><td><code>ActivityTracker</code></td><td>Registra último uso. Expõe <code>is_idle(timeout)</code> para cleanup.</td></tr>
+      <tr><td><code>tools.py</code></td><td>função <code>bash</code></td><td>LangChain tool que expõe <code>exec_command</code> do sandbox para os agentes</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Dois modos de controle Docker</h3>
+  <pre><span class="pre-label">app/core/config.py</span>DOCKER_CONTROL_MODE: Literal[<span class="str">"local"</span>, <span class="str">"remote"</span>] = <span class="str">"local"</span>
+
+<span class="cm"># "local":  backend acessa diretamente o socket Docker (/var/run/docker.sock)</span>
+<span class="cm"># "remote": delega para o serviço runtime-control (:8010) via HTTP</span>
+<span class="cm">#           → API principal sem acesso privilegiado ao Docker</span></pre>
+
+  <div class="note y">
+    <strong>Em produção, use <code>remote</code>.</strong> O <code>runtime-control</code> é o único serviço com acesso ao socket Docker, reduzindo a superfície de ataque da API principal.
+  </div>
+
+  <h3>Fluxo de cleanup</h3>
+  <pre><span class="pre-label">sandbox/manager.py — cleanup loop</span><span class="cm"># Roda em background thread ao iniciar a API</span>
+<span class="kw">while</span> not stopped:
+    <span class="kw">for</span> session_id, sandbox <span class="kw">in</span> active_sandboxes.items():
+        <span class="kw">if</span> tracker.is_idle(SANDBOX_IDLE_TIMEOUT):
+            <span class="kw">await</span> sandbox.stop()              <span class="cm"># para o container</span>
+        <span class="kw">elif</span> tracker.is_idle(SANDBOX_DESTROY_TIMEOUT):
+            <span class="kw">await</span> sandbox.destroy()           <span class="cm"># remove o container</span>
+            del active_sandboxes[session_id]
+    <span class="kw">await</span> asyncio.sleep(CLEANUP_INTERVAL)</pre>
+</section>
+
+<!-- ═══ BACKEND — API ═══ -->
+<section id="be-api">
+  <h2>Backend — API Routes (v1)</h2>
+  <p>Pasta: <span class="fpath">packages/backend/app/api/v1/</span></p>
+
+  <table class="t">
+    <thead><tr><th>Arquivo</th><th>Rota base</th><th>Endpoints</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>chat.py</code></td><td><code>/api/v1/chat</code></td>
+        <td>
+          <code>POST /</code> — enfileira <code>run_agent_workflow</code> Celery task<br>
+          <code>GET /{session_id}/stream</code> — SSE: subscribe no Redis channel da sessão<br>
+          <code>GET /{session_id}/messages</code> — histórico de mensagens
+        </td>
+      </tr>
+      <tr>
+        <td><code>sessions.py</code></td><td><code>/api/v1/sessions</code></td>
+        <td><code>GET /</code>, <code>POST /</code>, <code>DELETE /{id}</code></td>
+      </tr>
+      <tr>
+        <td><code>datasources.py</code></td><td><code>/api/v1/datasources</code></td>
+        <td>CRUD de datasources + upload de arquivos + preview de dados</td>
+      </tr>
+      <tr>
+        <td><code>workflows.py</code></td><td><code>/api/v1/workflows</code></td>
+        <td>Lista, salva e executa workflows (arquivos JSON de draft)</td>
+      </tr>
+      <tr>
+        <td><code>workflow_files.py</code></td><td><code>/api/v1/workflow-files</code></td>
+        <td>Serve arquivos do workspace da sessão</td>
+      </tr>
+      <tr>
+        <td><code>system.py</code></td><td><code>/api/v1/system</code></td>
+        <td><code>GET /workflow-nodes</code> — catálogo completo de NodeSpecs (usado pelo Planner e pelo editor)</td>
+      </tr>
+      <tr>
+        <td><code>video.py</code></td><td><code>/api/v1/video</code></td>
+        <td>Registra e busca vídeos gerados; serve arquivos de mídia</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>SSE — como funciona o streaming</h3>
+  <pre><span class="pre-label">api/v1/chat.py (simplified)</span><span class="kw">@router.get</span>(<span class="str">"/{session_id}/stream"</span>)
+<span class="kw">async def</span> <span class="fn">stream</span>(session_id: str):
+    event_bus = <span class="cls">RedisEventBus</span>(settings.REDIS_URL)
+    channel = f<span class="str">"session:{session_id}"</span>
+
+    <span class="kw">async def</span> <span class="fn">generate</span>():
+        <span class="kw">async for</span> message <span class="kw">in</span> event_bus.subscribe(channel):
+            <span class="kw">yield</span> f<span class="str">"data: {message}\n\n"</span>    <span class="cm"># formato SSE</span>
+
+    <span class="kw">return</span> <span class="cls">StreamingResponse</span>(generate(), media_type=<span class="str">"text/event-stream"</span>)</pre>
+</section>
+
+<!-- ═══ BACKEND — MODELS ═══ -->
+<section id="be-models">
+  <h2>Backend — ORM Models &amp; Repositórios</h2>
+
+  <h3>Principais modelos SQLAlchemy</h3>
+  <table class="t">
+    <thead><tr><th>Model</th><th>Tabela</th><th>O que representa</th></tr></thead>
+    <tbody>
+      <tr><td><code>User</code></td><td>users</td><td>Conta do usuário, hash de senha, status de verificação de email</td></tr>
+      <tr><td><code>ChatSession</code></td><td>chat_sessions</td><td>Sessão de trabalho. Agrupa turns e datasources.</td></tr>
+      <tr><td><code>ChatTurn</code></td><td>chat_turns</td><td>Um round de user→assistant. Status: queued → running → summarizing → completed/failed</td></tr>
+      <tr><td><code>SessionMessage</code></td><td>session_messages</td><td>Mensagens persistidas (UserMessage + AssistantMessage com steps)</td></tr>
+      <tr><td><code>DataSource</code></td><td>datasources</td><td>Conexão com banco (host/port/creds) ou arquivo uploaded. Metadata de schema.</td></tr>
+      <tr><td><code>WorkflowDraft</code></td><td>workflow_drafts</td><td>JSON do plano gerado pelo WorkflowAgent para um turn. Versionado.</td></tr>
+      <tr><td><code>WorkflowRun</code></td><td>workflow_runs</td><td>Execução de um draft. Status normalizado via <code>lifecycle.py</code>.</td></tr>
+      <tr><td><code>WorkflowArtifact</code></td><td>workflow_artifacts</td><td>Artefato produzido por um nó (dashboard_url, video_url, report_url, file)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Padrão Repository</h3>
+  <pre><span class="pre-label">repositories/message_repository.py (exemplo)</span><span class="kw">class</span> <span class="cls">MessageRepository</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, db: <span class="cls">Session</span>): self.db = db
+
+    <span class="kw">def</span> <span class="fn">append</span>(self, session_id: str, message: <span class="cls">Message</span>) -> <span class="cls">SessionMessage</span>:
+        record = <span class="cls">SessionMessage</span>(session_id=session_id, **message.model_dump())
+        self.db.add(record)
+        self.db.commit()
+        self.db.refresh(record)
+        <span class="kw">return</span> record</pre>
+</section>
+
+<!-- ═══ FRONTEND ═══ -->
+<section id="fe-structure">
+  <h2>Frontend — Estrutura React</h2>
+  <p>Pasta: <span class="fpath">packages/frontend/src/</span> — React 19 + TypeScript 6 + Vite + TailwindCSS</p>
+
+  <div class="cgrid">
+    <div class="card">
+      <div class="card-h">components/workflow/</div>
+      <div class="card-p">Visualização do DAG com ReactFlow. Cada nó é um componente customizado. Mostra status em tempo real (idle/running/done/failed) via eventos SSE.</div>
+      <div class="card-f">WorkflowGraph.tsx, NodeCard.tsx</div>
+    </div>
+    <div class="card">
+      <div class="card-h">components/right-panel/</div>
+      <div class="card-p">Sistema de abas para outputs: Video Player (Remotion), Dashboard iframe, Report viewer, File explorer. Plugin system para novos tipos de artefato.</div>
+      <div class="card-f">OutputCenter.tsx, RightPanel.tsx</div>
+    </div>
+    <div class="card">
+      <div class="card-h">components/data-source/</div>
+      <div class="card-p">Upload de arquivos, conexão com bancos de dados, preview de CSV/Excel no browser. Seleção com "@" no chat via DataSourceManager.</div>
+      <div class="card-f">DataSourceManager.tsx</div>
+    </div>
+    <div class="card">
+      <div class="card-h">components/file-viewers/</div>
+      <div class="card-p">Visualizadores de CSV, spreadsheet, markdown e arquivos com numeração de linhas. Renderizados dentro do painel direito.</div>
+      <div class="card-f">CsvViewer.tsx, MarkdownViewer.tsx</div>
+    </div>
+    <div class="card">
+      <div class="card-h">services/</div>
+      <div class="card-p">Comunicação com a API: wrappers fetch tipados e o SSE listener que despacha eventos para os Zustand stores.</div>
+      <div class="card-f">api.ts, sseService.ts</div>
+    </div>
+    <div class="card">
+      <div class="card-h">pages/</div>
+      <div class="card-p">8 páginas: Login, Register, VerifyEmail, ForgotPassword, ResetPassword, Auth (OAuth callback), WorkflowsNew. Roteadas com React Router.</div>
+      <div class="card-f">pages/*.tsx</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FRONTEND STORES ═══ -->
+<section id="fe-stores">
+  <h2>Frontend — Zustand Stores</h2>
+  <p>Estado global dividido por domínio. Cada store é independente — evita re-render global desnecessário.</p>
+
+  <table class="t">
+    <thead><tr><th>Store</th><th>Arquivo</th><th>Estado gerenciado</th></tr></thead>
+    <tbody>
+      <tr><td><strong>useChatStore</strong></td><td><code>stores/chat.ts</code></td><td>Sessão ativa, histórico de mensagens, status de envio. Actions: <code>sendMessage</code>, <code>loadSession</code>, <code>appendEvent</code></td></tr>
+      <tr><td><strong>useAuthStore</strong></td><td><code>stores/auth.ts</code></td><td>Usuário logado, JWT token, refresh token. Persiste no localStorage.</td></tr>
+      <tr><td><strong>useWorkflowSessionsStore</strong></td><td><code>stores/workflowSessions.ts</code></td><td>Estado de cada run de workflow: node states, fase atual, artefatos produzidos</td></tr>
+      <tr><td><strong>useRightPanelStore</strong></td><td><code>stores/rightPanel.ts</code></td><td>Qual aba está ativa (video, dashboard, report, files), URL do artefato selecionado</td></tr>
+      <tr><td><strong>useReportStore</strong></td><td><code>stores/report.ts</code></td><td>Conteúdo do relatório gerado, estado de loading por sessão</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ FRONTEND SSE ═══ -->
+<section id="fe-sse">
+  <h2>Frontend — Consumo de SSE</h2>
+  <pre><span class="pre-label">services/sseService.ts (simplified)</span><span class="kw">const</span> source = <span class="kw">new</span> <span class="cls">EventSource</span>(<span class="str">`/api/v1/chat/${sessionId}/stream`</span>)
+
+source.onmessage = (event) => {
+  <span class="kw">const</span> data: <span class="cls">AgentEvent</span> = JSON.parse(event.data)
+
+  <span class="kw">switch</span> (data.type) {
+    <span class="kw">case</span> <span class="str">"token"</span>:           chatStore.appendToken(data.content);        <span class="kw">break</span>
+    <span class="kw">case</span> <span class="str">"tool_start"</span>:      chatStore.startStep(data.data.name);       <span class="kw">break</span>
+    <span class="kw">case</span> <span class="str">"tool_end"</span>:        chatStore.endStep(data.data.name);         <span class="kw">break</span>
+    <span class="kw">case</span> <span class="str">"workflow_event"</span>:  workflowStore.handleEvent(data.data);      <span class="kw">break</span>
+    <span class="kw">case</span> <span class="str">"sandbox_started"</span>: rightPanelStore.showFileExplorer();        <span class="kw">break</span>
+    <span class="kw">case</span> <span class="str">"agent_end"</span>:       chatStore.finalizeMessage(); source.close(); <span class="kw">break</span>
+    <span class="kw">case</span> <span class="str">"error"</span>:           chatStore.setError(data.content);          <span class="kw">break</span>
+  }
+}</pre>
+</section>
+
+<!-- ═══ INFRA — DOCKER ═══ -->
+<section id="infra-docker">
+  <h2>Infraestrutura — Docker Compose</h2>
+  <p>Arquivo: <span class="fpath">docker-compose.yml</span> — 9 serviços, todos na mesma rede interna.</p>
+
+  <table class="t">
+    <thead><tr><th>Serviço</th><th>Imagem / Build</th><th>Porta</th><th>Depende de</th></tr></thead>
+    <tbody>
+      <tr><td><strong>gateway</strong></td><td>nginx (docker/nginx.conf)</td><td>host:8080</td><td>frontend, backend</td></tr>
+      <tr><td><strong>backend-api</strong></td><td>Dockerfile.backend</td><td>interno:8000</td><td>postgres, redis, minio</td></tr>
+      <tr><td><strong>backend-worker</strong></td><td>Dockerfile.backend</td><td>—</td><td>postgres, redis, minio, runtime-control</td></tr>
+      <tr><td><strong>runtime-control</strong></td><td>Dockerfile.backend</td><td>interno:8010</td><td>Docker socket</td></tr>
+      <tr><td><strong>backend-migrate</strong></td><td>Dockerfile.backend (job)</td><td>—</td><td>postgres (healthcheck)</td></tr>
+      <tr><td><strong>frontend</strong></td><td>Dockerfile.frontend</td><td>interno:80</td><td>—</td></tr>
+      <tr><td><strong>postgres</strong></td><td>postgres:15-alpine</td><td>interno:5432</td><td>—</td></tr>
+      <tr><td><strong>redis</strong></td><td>redis:7-alpine</td><td>interno:6379</td><td>—</td></tr>
+      <tr><td><strong>minio</strong></td><td>minio/minio</td><td>interno:9000</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note g">
+    <strong>backend-api e backend-worker compartilham a mesma imagem</strong> (<code>Dockerfile.backend</code>) mas têm commands diferentes: <code>uvicorn app.main:app</code> vs <code>celery -A app.core.celery_app worker</code>. Isso garante que ambos têm exatamente o mesmo código instalado.
+  </div>
+</section>
+
+<!-- ═══ INFRA — FLOW ═══ -->
+<section id="infra-flow">
+  <h2>Infraestrutura — Fluxo de Produção Completo</h2>
+
+  <div class="dflow">
+    <div class="df-row">
+      <div class="df-label">Browser</div>
+      <div class="df-body">
+        <div class="df-item">
+          <div class="df-title">POST /api/v1/chat {session_id, message, datasource_ids}</div>
+          <div class="df-desc">Nginx roteia para backend-api:8000. <code>auth_middleware</code> valida o JWT antes do handler.</div>
+        </div>
+      </div>
+    </div>
+    <div class="df-row">
+      <div class="df-label">FastAPI</div>
+      <div class="df-body">
+        <div class="df-item">
+          <div class="df-title">chat.py → run_agent_workflow.delay(agent_input_dict)</div>
+          <div class="df-desc">Cria <code>ChatTurn</code> no PostgreSQL, enfileira task no Redis via Celery, responde HTTP 200 imediatamente com <code>turn_id</code>.</div>
+        </div>
+      </div>
+    </div>
+    <div class="df-row">
+      <div class="df-label">Redis</div>
+      <div class="df-body">
+        <div class="df-item">
+          <div class="df-title">Task queue + pub/sub para SSE</div>
+          <div class="df-desc">Broker de tasks Celery: <code>celery:default</code> queue. Canal de eventos: <code>session:{session_id}</code>.</div>
+        </div>
+      </div>
+    </div>
+    <div class="df-row">
+      <div class="df-label">Celery Worker</div>
+      <div class="df-body">
+        <div class="df-item">
+          <div class="df-title">_run_agent_async() → SupervisorAgent.ainvoke()</div>
+          <div class="df-desc">Cria sandbox Docker, sincroniza arquivos, constrói tools, instancia agente com checkpointer PostgreSQL, executa o LangGraph loop.</div>
+        </div>
+      </div>
+    </div>
+    <div class="df-row">
+      <div class="df-label">LangGraph</div>
+      <div class="df-body">
+        <div class="df-item">
+          <div class="df-title">agent → ToolNode(workflow_agent) → agent → ToolNode(summarize) → END</div>
+          <div class="df-desc">A cada token gerado, <code>AgentCallback.on_llm_new_token</code> publica no Redis → SSE → browser. A cada tool call, publica TOOL_START/TOOL_END.</div>
+        </div>
+      </div>
+    </div>
+    <div class="df-row">
+      <div class="df-label">WorkflowEngine</div>
+      <div class="df-body">
+        <div class="df-item">
+          <div class="df-title">validate → topological_sort → execute nodes</div>
+          <div class="df-desc">Cada <code>NodeHandler.execute(node, inputs, context)</code> pode chamar o sandbox Docker via RuntimeControl:8010. Outputs persistidos em <code>NodeRun.outputs</code> no <code>ExecutionContext</code>.</div>
+        </div>
+      </div>
+    </div>
+    <div class="df-row">
+      <div class="df-label">MinIO</div>
+      <div class="df-body">
+        <div class="df-item">
+          <div class="df-title">Artefatos finais armazenados: vídeo, dashboard, relatório</div>
+          <div class="df-desc">URLs retornadas nos outputs dos nós, registradas em <code>WorkflowArtifact</code> no PostgreSQL.</div>
+        </div>
+      </div>
+    </div>
+    <div class="df-row">
+      <div class="df-label">Browser</div>
+      <div class="df-body">
+        <div class="df-item">
+          <div class="df-title">SSE agent_end → frontend fecha EventSource, renderiza artefatos</div>
+          <div class="df-desc">Painel direito exibe vídeo player, dashboard iframe e relatório. Workflow DAG mostra todos os nós como <span class="tag tag-g">done</span>.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ INFRA — CONFIG ═══ -->
+<section id="infra-config">
+  <h2>Infraestrutura — Configuração</h2>
+  <p>Toda configuração via variáveis de ambiente, validadas pelo Pydantic <code>Settings</code> em <span class="fpath">app/core/config.py</span>. Arquivo <span class="fpath">env.example</span> documenta todas as variáveis.</p>
+
+  <h3>Variáveis críticas</h3>
+  <table class="t">
+    <thead><tr><th>Variável</th><th>Obrigatória</th><th>Descrição</th></tr></thead>
+    <tbody>
+      <tr><td><code>LLM_API_KEY</code></td><td><span class="tag tag-r">sim</span></td><td>Chave da API do LLM (OpenAI-compatible)</td></tr>
+      <tr><td><code>LLM_BASE_URL</code></td><td><span class="tag tag-r">sim</span></td><td>Base URL do provider (ex: <code>https://api.openai.com/v1</code>)</td></tr>
+      <tr><td><code>LLM_MODEL</code></td><td><span class="tag tag-r">sim</span></td><td>Nome do modelo (ex: <code>gpt-4o</code>)</td></tr>
+      <tr><td><code>JWT_SECRET_KEY</code></td><td><span class="tag tag-r">sim</span></td><td>Secret para assinatura de tokens JWT</td></tr>
+      <tr><td><code>POSTGRES_PASSWORD</code></td><td><span class="tag tag-r">sim</span></td><td>Senha do PostgreSQL</td></tr>
+      <tr><td><code>MINIO_ACCESS_KEY</code></td><td><span class="tag tag-r">sim</span></td><td>Access key do MinIO</td></tr>
+      <tr><td><code>MINIO_SECRET_KEY</code></td><td><span class="tag tag-r">sim</span></td><td>Secret key do MinIO</td></tr>
+      <tr><td><code>DOCKER_CONTROL_MODE</code></td><td><span class="tag tag-g">não</span></td><td><code>local</code> (default) ou <code>remote</code> (via runtime-control)</td></tr>
+      <tr><td><code>SANDBOX_IDLE_TIMEOUT</code></td><td><span class="tag tag-g">não</span></td><td>Segundos até parar container idle (default: 300)</td></tr>
+      <tr><td><code>SANDBOX_DESTROY_TIMEOUT</code></td><td><span class="tag tag-g">não</span></td><td>Segundos até destruir container parado (default: 600)</td></tr>
+      <tr><td><code>HOST_GATEWAY_PORT</code></td><td><span class="tag tag-g">não</span></td><td>Porta pública do Nginx (default: 8080) — útil em máquinas compartilhadas</td></tr>
+      <tr><td><code>COMPOSE_PROJECT_NAME</code></td><td><span class="tag tag-g">não</span></td><td>Prefixo dos containers Docker — evita conflito em múltiplas instâncias</td></tr>
+    </tbody>
+  </table>
+
+  <hr/>
+  <p style="text-align:center;font-size:.73rem;color:var(--dim);padding-bottom:20px">
+    DeepEye Engineering Docs · SIGMOD Companion '26 · Li et al. ·
+    <a href="https://doi.org/10.1145/3788853.3801612" style="color:var(--dim)">doi:10.1145/3788853.3801612</a>
+  </p>
+</section>
+
+</main>
+
+<script>
+// scroll spy
+const links = [...document.querySelectorAll('.sb-a')];
+const secs  = [...document.querySelectorAll('section[id]')];
+const io = new IntersectionObserver(es=>{
+  es.forEach(e=>{
+    if(e.isIntersecting){
+      links.forEach(l=>l.classList.remove('on'));
+      const a = document.querySelector(`.sb-a[href="#${e.target.id}"]`);
+      if(a){a.classList.add('on'); a.scrollIntoView({block:'nearest'})}
+    }
+  });
+},{threshold:.2});
+secs.forEach(s=>io.observe(s));
+
+// pipeline detail
+const EPIPE = [
+  `<strong>Compiler</strong> — o WorkflowAgent gera um JSON com <code>root.nodes</code> e <code>root.edges</code>. O engine parseia via <code>Workflow.model_validate()</code> (Pydantic), criando objetos tipados. Neste passo, referências de variáveis entre portas são resolvidas — ex: o output <code>rows</code> de um <code>sql.execute</code> é linkado ao input <code>data</code> de um <code>dashboard.generate</code>.`,
+  `<strong>Validator</strong> — <code>validate_workflow_graph()</code> em <code>validation.py</code> roda 6 checagens: (1) tipo de nó existe no NodeRegistry; (2) porta declarada existe no NodeSpec; (3) schema de portas conectadas é compatível; (4) inputs required têm ao menos um incoming edge; (5) params required estão presentes; (6) DFS para detectar ciclos no grafo. Qualquer violação levanta <code>WorkflowValidationError</code> antes de qualquer execução.`,
+  `<strong>Optimizer (Kahn's Algorithm)</strong> — calcula <code>indegree</code> de cada nó. Nós com <code>indegree=0</code> são "livres" e vão para a fila juntos — eles formam a mesma camada de execução paralela. Ao terminar cada nó, decrementa o <code>indegree</code> dos vizinhos. O resultado é uma lista topológica onde a ordem respeita todas as dependências.`,
+  `<strong>Executor</strong> — itera sobre a lista topológica. Para cada nó: (1) resolve inputs chamando <code>_resolve_inputs()</code> que busca os outputs dos nós upstream no <code>ExecutionContext</code>; (2) chama <code>handler.execute(node, inputs, context)</code>; (3) valida que o retorno não tem campos não declarados no NodeSpec; (4) salva <code>NodeRun</code> com status/timestamps/outputs. Em caso de erro, marca <code>context.status="failed"</code> e retorna — o erro vai para o Planner para self-correction.`,
+];
+function epick(el){
+  document.querySelectorAll('.pipe-step').forEach(s=>s.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('epd').innerHTML = EPIPE[+el.dataset.i];
+}
+
+// tabs
+function tab(group, id){
+  document.querySelectorAll(`#${group}-tabs .tab-btn`).forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll(`[id^="${group}-"]`).forEach(p=>{
+    if(p.classList.contains('tab-pane')) p.classList.remove('on');
+  });
+  event.currentTarget.classList.add('on');
+  document.getElementById(`${group}-${id}`).classList.add('on');
+}
+
+// accordion
+function acc(hd){
+  hd.classList.toggle('open');
+  const bd = hd.nextElementSibling;
+  bd.classList.toggle('show');
+}
+</script>
+</body>
+</html>
